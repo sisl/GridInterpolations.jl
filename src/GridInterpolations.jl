@@ -109,6 +109,7 @@ function maskedInterpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{
     return val / totalWeight
 end
 
+interpolate(grid::AbstractGrid, data::Array, x::Vector{Float64}) = interpolate(grid, float64(data[:]), x)
 
 function interpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{Float64})
     index, weight = interpolants(grid, x)

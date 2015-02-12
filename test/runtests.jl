@@ -165,3 +165,8 @@ end
 #@test compareToGrid(:extrapNeg)==true
 
 @test simplexMagic()==true
+
+include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
+rectangleBenchmark(quiet=true)
+simplexBenchmark(quiet=true)
+compareBenchmarks(quiet=true)

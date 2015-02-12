@@ -4,7 +4,7 @@ using GridInterpolations
 
 
 
-function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000)
+function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
     # Calculate simplex interpolation benchmarks
     # create a multi-dimensional test Grid with data, cut points, etc.
 
@@ -25,16 +25,18 @@ function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::
     end
     elapsedTime = toc()
 
-    display("Simplex interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-    display("$numRandomTests interpolations required $elapsedTime seconds")
-    display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
+    if !quiet
+        display("Simplex interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
+        display("$numRandomTests interpolations required $elapsedTime seconds")
+        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
+    end
 
     return elapsedTime
 
 end
 
 
-function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000)
+function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
     # Calculate rectangular interpolation benchmarks
     # create a multi-dimensional test Grid with data, cut points, etc.
 
@@ -54,15 +56,16 @@ function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests
     end
     elapsedTime = toc()
 
-    display("Rectangular interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-    display("$numRandomTests interpolations required $elapsedTime seconds")
-    display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
-
+    if !quiet
+        display("Rectangular interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
+        display("$numRandomTests interpolations required $elapsedTime seconds")
+        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
+    end
     return elapsedTime
 
 end
 
-function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000)
+function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
     # Compare rectangular and simplex interpolation benchmarks
 
     cutsDim = pointsPerDim*ones(Int,numDims)
@@ -89,10 +92,12 @@ function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests:
     end
     elapsedTimeRectangle = toc()
 
-    display("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-    display("Simplex   required $elapsedTimeSimplex sec")
-    display("Rectangle required $elapsedTimeRectangle sec")
-    display(string("Simplex was faster by a factor of ", elapsedTimeRectangle/elapsedTimeSimplex))
+    if !quiet
+        display("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimenion:")
+        display("Simplex   required $elapsedTimeSimplex sec")
+        display("Rectangle required $elapsedTimeRectangle sec")
+        display(string("Simplex was faster by a factor of ", elapsedTimeRectangle/elapsedTimeSimplex))
+    end
 
     return 0
 

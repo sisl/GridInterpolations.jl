@@ -126,7 +126,10 @@ function getFracIndex(vararray::Array, value::Float64)
 
 end
 
-function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::String="simplexMagicTest20.txt", eps::Float64=1e-10)
+function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::String="", eps::Float64=1e-10)
+    if isempty(checkFileName)
+        checkFileName = joinpath(Pkg.dir("GridInterpolations"), "test", "simplexMagicTest20.txt")
+    end
 
     val = transpose([ [8.,1,6] [3,5,7] [4,9,2] ]) # transposed magic(3) from matlab
 

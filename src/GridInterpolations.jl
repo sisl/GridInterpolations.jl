@@ -5,24 +5,24 @@ export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, show, ind2x
 abstract AbstractGrid
 
 type RectangleGrid <: AbstractGrid
-  cutPoints::Vector{Vector{Float64}}
-  cut_counts::Vector{Int}
-  cuts::Vector{Float64}
-  index::Vector{Int}
-  weight::Vector{Float64}
-  index2::Vector{Int}
-  weight2::Vector{Float64}
+    cutPoints::Vector{Vector{Float64}}
+    cut_counts::Vector{Int}
+    cuts::Vector{Float64}
+    index::Vector{Int}
+    weight::Vector{Float64}
+    index2::Vector{Int}
+    weight2::Vector{Float64}
 end
 
 type SimplexGrid <: AbstractGrid
-  cutPoints::Vector{Vector{Float64}}
-  cut_counts::Vector{Int}
-  cuts::Vector{Float64}
-  index::Vector{Int}
-  weight::Vector{Float64}
-  x_p::Vector{Float64} # residuals
-  ihi::Vector{Int} # indicies of cuts above point
-  ilo::Vector{Int} # indicies of cuts below point
+    cutPoints::Vector{Vector{Float64}}
+    cut_counts::Vector{Int}
+    cuts::Vector{Float64}
+    index::Vector{Int}
+    weight::Vector{Float64}
+    x_p::Vector{Float64} # residuals
+    ihi::Vector{Int} # indices of cuts above point
+    ilo::Vector{Int} # indices of cuts below point
 end
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
@@ -34,63 +34,64 @@ dimensions(grid::RectangleGrid) = length(grid.cut_counts)
 dimensions(grid::SimplexGrid) = length(grid.cut_counts)
 
 function RectangleGrid(cutPoints::Vector{Float64}...)
-  cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-  cuts = vcat(cutPoints...)
-  myCutPoints = Array(Vector{Float64}, length(cutPoints))
-  for i = 1:length(cutPoints)
-    myCutPoints[i] = cutPoints[i]
-  end
-  numDims = length(cutPoints)
-  index = zeros(Int, 2^numDims)
-  weight = zeros(Float64, 2^numDims)
-  index[1] = 1
-  weight[1] = 1.0
-  index2 = zeros(Int, 2^numDims)
-  weight2 = zeros(Float64, 2^numDims)
-  index2[1] = 1
-  weight2[1] = 1.0
-  RectangleGrid(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
+    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+    cuts = vcat(cutPoints...)
+    myCutPoints = Array(Vector{Float64}, length(cutPoints))
+    for i = 1:length(cutPoints)
+        myCutPoints[i] = cutPoints[i]
+    end
+    numDims = length(cutPoints)
+    index = zeros(Int, 2^numDims)
+    weight = zeros(Float64, 2^numDims)
+    index[1] = 1
+    weight[1] = 1.0
+    index2 = zeros(Int, 2^numDims)
+    weight2 = zeros(Float64, 2^numDims)
+    index2[1] = 1
+    weight2[1] = 1.0
+    RectangleGrid(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
 end
 
 function SimplexGrid(cutPoints::Vector{Float64}...)
-  cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-  cuts = vcat(cutPoints...)
-  myCutPoints = Array(Vector{Float64}, length(cutPoints))
-  for i = 1:length(cutPoints)
-    myCutPoints[i] = cutPoints[i]
-  end
-  numDims = length(cutPoints)
-  index = zeros(Int, numDims+1) # d+1 points for simplex
-  weight = zeros(Float64, numDims+1)
-  x_p = zeros(numDims) # residuals
-  ihi = zeros(Int, numDims) # indicies of cuts above point
-  ilo = zeros(Int, numDims) # indicies of cuts below point
-  SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo)
+    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+    cuts = vcat(cutPoints...)
+    myCutPoints = Array(Vector{Float64}, length(cutPoints))
+    for i = 1:length(cutPoints)
+        myCutPoints[i] = cutPoints[i]
+    end
+    numDims = length(cutPoints)
+    index = zeros(Int, numDims+1) # d+1 points for simplex
+    weight = zeros(Float64, numDims+1)
+    x_p = zeros(numDims) # residuals
+    ihi = zeros(Int, numDims) # indicies of cuts above point
+    ilo = zeros(Int, numDims) # indicies of cuts below point
+    SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo)
 end
 
 Base.show(io::IO, grid::AbstractGrid) = show(io, grid.cutPoints)
 
 function ind2x(grid::AbstractGrid, ind::Int)
-  ndims = dimensions(grid)
-  x = Array(Float64, ndims)
-  ind2x!(grid, ind, x)
-  x::Array{Float64}
+    ndims = dimensions(grid)
+    x = Array(Float64, ndims)
+    ind2x!(grid, ind, x)
+    x::Array{Float64}
 end
 
 function ind2x!(grid::AbstractGrid, ind::Int, x::Array{Float64})
-  ndims = dimensions(grid)
-  stride = grid.cut_counts[1]
-  for i=2:ndims-1
-    stride *= grid.cut_counts[i]
-  end
+    ndims = dimensions(grid)
+    stride = grid.cut_counts[1]
+    for i=2:ndims-1
+        stride *= grid.cut_counts[i]
+    end
 
-  for i=(ndims-1):-1:1
-    rest = rem(ind-1, stride) + 1
-    x[i + 1] = grid.cutPoints[i + 1][div(ind - rest, stride) + 1]
-    ind = rest
-    stride = div(stride, grid.cut_counts[i])
-  end
-  x[1] = grid.cutPoints[1][ind]
+    for i=(ndims-1):-1:1
+        rest = rem(ind-1, stride) + 1
+        x[i + 1] = grid.cutPoints[i + 1][div(ind - rest, stride) + 1]
+        ind = rest
+        stride = div(stride, grid.cut_counts[i])
+    end
+    x[1] = grid.cutPoints[1][ind]
+    nothing
 end
 
 # masked interpolation ignores points that are masked
@@ -110,76 +111,76 @@ end
 
 
 function interpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{Float64})
-  index, weight = interpolants(grid, x)
-  dot(data[index], weight)
+    index, weight = interpolants(grid, x)
+    dot(data[index], weight)
 end
 
 function interpolants(grid::RectangleGrid, x::Vector{Float64})
-  cut_counts = grid.cut_counts
-  cuts = grid.cuts
+    cut_counts = grid.cut_counts
+    cuts = grid.cuts
 
-  # Reset the values in index and weight:
-  fill!(grid.index,0)
-  fill!(grid.index2,0)
-  fill!(grid.weight,0)
-  fill!(grid.weight2,0)
-  grid.index[1] = 1
-  grid.index2[1] = 1
-  grid.weight[1] = 1.
-  grid.weight2[1] = 1.
+    # Reset the values in index and weight:
+    fill!(grid.index,0)
+    fill!(grid.index2,0)
+    fill!(grid.weight,0)
+    fill!(grid.weight2,0)
+    grid.index[1] = 1
+    grid.index2[1] = 1
+    grid.weight[1] = 1.
+    grid.weight2[1] = 1.
 
-  l = 1 
-  subblock_size = 1
-  cut_i = 1
-  n = 1
-  for d = 1:length(x)
-    coord = x[d]
-    lasti = cut_counts[d]+cut_i-1
-    ii = cut_i
+    l = 1
+    subblock_size = 1
+    cut_i = 1
+    n = 1
+    for d = 1:length(x)
+        coord = x[d]
+        lasti = cut_counts[d]+cut_i-1
+        ii = cut_i
 
-    if coord <= cuts[ii]
-      i_lo, i_hi = ii, ii
-    elseif coord >= cuts[lasti]
-      i_lo, i_hi = lasti, lasti
-    else
-      while cuts[ii] < coord
-        ii = ii + 1
-      end
-      if cuts[ii] == coord
-        i_lo, i_hi = ii, ii
-      else
-        i_lo, i_hi = (ii-1), ii
-      end
+        if coord <= cuts[ii]
+            i_lo, i_hi = ii, ii
+        elseif coord >= cuts[lasti]
+            i_lo, i_hi = lasti, lasti
+        else
+            while cuts[ii] < coord
+                ii = ii + 1
+            end
+            if cuts[ii] == coord
+                i_lo, i_hi = ii, ii
+            else
+                i_lo, i_hi = (ii-1), ii
+            end
+        end
+
+        if i_lo == i_hi
+            for i = 1:l
+                grid.index[i] += (i_lo - cut_i)*subblock_size
+            end
+        else
+            low = (1 - (coord - cuts[i_lo])/(cuts[i_hi]-cuts[i_lo]))
+            for i = 1:l
+                grid.index2[i  ] = grid.index[i] + (i_lo-cut_i)*subblock_size
+                grid.index2[i+l] = grid.index[i] + (i_hi-cut_i)*subblock_size
+            end
+            copy!(grid.index,grid.index2)
+            for i = 1:l
+                grid.weight2[i  ] = grid.weight[i]*low
+                grid.weight2[i+l] = grid.weight[i]*(1-low)
+            end
+            copy!(grid.weight,grid.weight2)
+            l = l*2
+            n = n*2
+        end
+        cut_i = cut_i + cut_counts[d]
+        subblock_size = subblock_size*(cut_counts[d])
     end
 
-    if i_lo == i_hi
-      for i = 1:l
-        grid.index[i] += (i_lo - cut_i)*subblock_size
-      end
-    else
-      low = (1 - (coord - cuts[i_lo])/(cuts[i_hi]-cuts[i_lo]))
-      for i = 1:l
-        grid.index2[i  ] = grid.index[i] + (i_lo-cut_i)*subblock_size
-        grid.index2[i+l] = grid.index[i] + (i_hi-cut_i)*subblock_size
-      end
-      copy!(grid.index,grid.index2)
-      for i = 1:l
-        grid.weight2[i  ] = grid.weight[i]*low
-        grid.weight2[i+l] = grid.weight[i]*(1-low)
-      end
-      copy!(grid.weight,grid.weight2)
-      l = l*2
-      n = n*2
+    if l<length(grid.index)
+        # This is true if we don't need to interpolate all dimensions because we're on a boundary:
+        return grid.index[1:l]::Vector{Int}, grid.weight[1:l]::Vector{Float64}
     end
-    cut_i = cut_i + cut_counts[d]
-    subblock_size = subblock_size*(cut_counts[d])
-  end
-
-  if l<length(grid.index)
-    # This is true if we don't need to interpolate all dimensions because we're on a boundary:
-    return grid.index[1:l]::Vector{Int}, grid.weight[1:l]::Vector{Float64}
-  end
-  grid.index::Vector{Int}, grid.weight::Vector{Float64}
+    grid.index::Vector{Int}, grid.weight::Vector{Float64}
 end
 
 function interpolants(grid::SimplexGrid, x::Vector{Float64})
@@ -244,11 +245,11 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
     if length(x_p) != 0
         # sort translated and scaled x values
         ##### TODO: Can be made more efficient
-        n_ind = sortperm(x_p, rev=true) # 
+        n_ind = sortperm(x_p, rev=true) #
         x_p = x_p[n_ind]
         n_ind = n_ind - 1
         #####
-        # indecies of simplex in which point is contained
+        # indicies of simplex in which point is contained
         i_ind = int(zeros(prod(size(x_p))+1, 1)) # TODO: pre-allocate
         for i = 1:prod(size(i_ind))
             if i == 1
@@ -259,7 +260,7 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         end
         # get weight
         # reinitialize weights for every interpolation
-        for w = 1:length(weight); weight[w] = 0.0; end 
+        for w = 1:length(weight); weight[w] = 0.0; end
         for i = 1:length(i_ind)
             if i == 1
                 weight[i] = 1 - x_p[i]
@@ -273,7 +274,7 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         for idx = 1:length(index); index[idx] = 0; end # dont think this is needed
         for i = 1:length(i_ind)
             siz = 1
-            ct = 0 
+            ct = 0
             good_count = 1
             for k = 1:length(x)
                 if good_ind[k]
@@ -282,15 +283,15 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
                 else
                     u_cube = false
                 end
-                if u_cube 
+                if u_cube
                     index[i] += (ihi[k] - 1 - ct) * siz
                 else
                     index[i] += (ilo[k] - 1 - ct) * siz
                 end
-                siz = siz*grid.cut_counts[k] 
+                siz = siz*grid.cut_counts[k]
                 ct += grid.cut_counts[k]
             end
-            index[i] += 1 
+            index[i] += 1
         end
         weight = weight ./ sum(weight)
     else

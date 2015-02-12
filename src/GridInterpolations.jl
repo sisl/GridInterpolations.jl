@@ -297,7 +297,7 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         weight = weight ./ sum(weight)
     else
         # else return the index of the point with weight 1
-        return onCutIdx::Int, 1.0::Float64
+        return [onCutIdx]::Vector{Int}, [1.0]::Vector{Float64}
     end
 
     # there are padded zeros on ends

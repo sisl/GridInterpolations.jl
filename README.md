@@ -31,7 +31,7 @@ Create a rectangular and a simplex interpolation grids in two dimensions, a data
 ```julia
 grid = RectangleGrid([0., 0.5, 1.],[0., 0.5, 1.])  	# rectangular grid
 sGrid = SimplexGrid([0., 0.5, 1.],[0., 0.5, 1.])	# simplex grid
-gridData = [8. 1. 6. 3. 5. 7. 4. 9. 2.]            	# value data at each cut
+gridData = [8., 1., 6., 3., 5., 7., 4., 9., 2.]   	# vector of value data at each cut
 x = [0.25, 0.75]  									# point at which to perform interpolation
 ```
 

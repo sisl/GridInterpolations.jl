@@ -195,7 +195,7 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
 
     cut_counts = grid.cut_counts
     cuts = grid.cuts
-    # TODO: put these in grid object as well?
+
     subblock_size = 1
     cut_i = 1
     onCutIdx = 1
@@ -240,46 +240,40 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         cut_i = cut_i + cut_counts[i]
         subblock_size = subblock_size * (cut_counts[i])
     end
-    good_ind = ~isnan(x_p2) # TODO: pre-allocate
+    good_ind = ~isnan(x_p2) 
     # clear all NaN from x_p
-    x_p = x_p2[~isnan(x_p2)] # TODO: use padded x_p
+    x_p = x_p2[~isnan(x_p2)] 
     if length(x_p) != 0
+        n_ind = [1:length(x_p)]
         # sort translated and scaled x values
-        ##### TODO: Can be made more efficient
-        n_ind = sortperm(x_p, rev=true) #
+        sortperm!(n_ind, x_p, rev=true) 
         x_p = x_p[n_ind]
         n_ind = n_ind - 1
-        #####
-        # indicies of simplex in which point is contained
-        i_ind = int(zeros(prod(size(x_p))+1, 1)) # TODO: pre-allocate
-        for i = 1:prod(size(i_ind))
-            if i == 1
-                i_ind[i] = 0
-            else
-                i_ind[i] = i_ind[i-1] + 2^(n_ind[i-1])
-            end
-        end
         # get weight
         # reinitialize weights for every interpolation
         for w = 1:length(weight); weight[w] = 0.0; end
-        for i = 1:length(i_ind)
+        for i = 1:(length(x_p)+1)
             if i == 1
                 weight[i] = 1 - x_p[i]
-            elseif i == length(i_ind)
+            elseif i == length(x_p)+1
                 weight[i] = x_p[i-1]
             else
                 weight[i] = x_p[i-1] - x_p[i]
             end
         end
         # get indecies
-        for idx = 1:length(index); index[idx] = 0; end # dont think this is needed
-        for i = 1:length(i_ind)
+        fill!(index, 0)
+        i_index = 0
+        for i = 1:(length(x_p)+1)
             siz = 1
             ct = 0
             good_count = 1
+            if i > 1
+                i_index = i_index + 2^(n_ind[i-1])
+            end
             for k = 1:length(x)
-                if good_ind[k]
-                    u_cube = ((i_ind[i] & good_count) > 0)
+                if !isnan(x_p2[k])
+                    u_cube = ((i_index & good_count) > 0)
                     good_count <<= 1
                 else
                     u_cube = false
@@ -289,8 +283,8 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
                 else
                     index[i] += (ilo[k] - 1 - ct) * siz
                 end
-                siz = siz*grid.cut_counts[k]
-                ct += grid.cut_counts[k]
+                siz = siz*cut_counts[k]
+                ct += cut_counts[k]
             end
             index[i] += 1
         end
@@ -300,11 +294,20 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         return [onCutIdx]::Vector{Int}, [1.0]::Vector{Float64}
     end
 
-    # there are padded zeros on ends
-    # TODO: need to determine if this should be taken care of in interpolate or here with slicing
-    #return index::Vector{Int}, weight::Vector{Float64}
-    return index[1:(length(x_p)+1)]::Vector{Int}, weight[1:(length(x_p)+1)]::Vector{Float64}
+    # assign zero weight to the padded zeros
+    for i = (length(x_p)+2):length(weight); weight[i] = 0.0; index[i] = 1; end
+    return index::Vector{Int}, weight::Vector{Float64}
 end
 
+#################### sortperm! is included in Julia v0.4 ###################
+
+using Base.Order # for sortperm!, should be availiable in v 0.4
+using Base.Sort # for sortperm!
+const DEFAULT_UNSTABLE = QuickSort
+
+function sortperm!{I<:Integer}(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTABLE,
+lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward)
+    sort!(x, alg, Perm(ord(lt,by,rev,order),v))
+end
 
 end # module

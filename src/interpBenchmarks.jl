@@ -65,7 +65,8 @@ function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests
 
 end
 
-function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
+function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false,
+    returnSpeed=false)
     # Compare rectangular and simplex interpolation benchmarks
 
     cutsDim = pointsPerDim*ones(Int,numDims)
@@ -99,6 +100,22 @@ function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests:
         display(string("Simplex was faster by a factor of ", elapsedTimeRectangle/elapsedTimeSimplex))
     end
 
-    return 0
+    if returnSpeed
+        return elapsedTimeRectangle/elapsedTimeSimplex
+    end
+
+
+    return 0.0
 
 end
+
+function compareSpeedUp(nDims, nPoints)
+    speed = zeros(nDims)
+    for i = 1:nDims
+        speed[i] = compareBenchmarks(i, nPoints, 1000, quiet = true, returnSpeed = true)
+        gc()
+    end
+    return speed
+end
+
+

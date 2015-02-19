@@ -157,6 +157,12 @@ function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::String="", e
 
 end
 
+# constructs a new grid from repr output and tests to see if it's the same
+function reprConstruct()
+    g1 = SimplexGrid([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+    g2 = eval(parse(repr(g1)))
+    return g1.cutPoints == g2.cutPoints
+end
 
 function mapPt(pt::Int, NPOINTS::Int, NDISC::Int)
     return pt * (NPOINTS-1) / NDISC + 1
@@ -167,6 +173,8 @@ end
 #@test compareToGrid(:extrapNeg)==true
 
 @test simplexMagic()==true
+
+@test reprConstruct()==true
 
 include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
 rectangleBenchmark(quiet=true)

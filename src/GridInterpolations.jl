@@ -23,6 +23,7 @@ type SimplexGrid <: AbstractGrid
     x_p::Vector{Float64} # residuals
     ihi::Vector{Int} # indices of cuts above point
     ilo::Vector{Int} # indices of cuts below point
+    n_ind::Vector{Int}
 end
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
@@ -65,7 +66,8 @@ function SimplexGrid(cutPoints::Vector{Float64}...)
     x_p = zeros(numDims) # residuals
     ihi = zeros(Int, numDims) # indicies of cuts above point
     ilo = zeros(Int, numDims) # indicies of cuts below point
-    SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo)
+    n_ind = zeros(Int, numDims)
+    SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
 end
 
 Base.show(io::IO, grid::AbstractGrid) = show(io, grid.cutPoints)
@@ -189,16 +191,15 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
     weight = grid.weight
     index  = grid.index
 
-    x_p2 = grid.x_p # residuals
+    x_p = grid.x_p # residuals
     ihi = grid.ihi # indicies of cuts above point
     ilo = grid.ilo # indicies of cuts below point
+    n_ind = grid.n_ind
 
     cut_counts = grid.cut_counts
     cuts = grid.cuts
 
-    subblock_size = 1
     cut_i = 1
-    onCutIdx = 1
 
     for i = 1:dimensions(grid)
         # find indicies of coords if match
@@ -209,11 +210,11 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
         if coord <= cuts[ii]
             ihi[i] = ii
             ilo[i] = ii
-            x_p2[i] = NaN
+            x_p[i] = 0.0
         elseif coord >= cuts[lasti]
             ihi[i] = lasti
             ilo[i] = lasti
-            x_p2[i] = NaN
+            x_p[i] = 0.0
         else
             # increment through cut points if in bounds
             while cuts[ii] < coord
@@ -223,79 +224,63 @@ function interpolants(grid::SimplexGrid, x::Vector{Float64})
             if cuts[ii] == coord
                 ilo[i] = ii
                 ihi[i] = ii
-                x_p2[i] = NaN
+                x_p[i] = 0.0
             else
                 # if between cuts assign lo and high indecies and translate
                 ilo[i] = ii-1
                 ihi[i] = ii
                 lo = cuts[ilo[i]]
                 hi = cuts[ihi[i]]
-                x_p2[i] = (x[i] - lo) / (hi - lo)
+                x_p[i] = (x[i] - lo) / (hi - lo)
             end
-        end
-        # if point is on cut find the index
-        if ilo[i] == ihi[i]
-            onCutIdx += (ilo[i] - cut_i)*subblock_size
         end
         cut_i = cut_i + cut_counts[i]
-        subblock_size = subblock_size * (cut_counts[i])
-    end
-    good_ind = ~isnan(x_p2) 
-    # clear all NaN from x_p
-    x_p = x_p2[~isnan(x_p2)] 
-    if length(x_p) != 0
-        n_ind = [1:length(x_p)]
-        # sort translated and scaled x values
-        sortperm!(n_ind, x_p, rev=true) 
-        x_p = x_p[n_ind]
-        n_ind = n_ind - 1
-        # get weight
-        # reinitialize weights for every interpolation
-        for w = 1:length(weight); weight[w] = 0.0; end
-        for i = 1:(length(x_p)+1)
-            if i == 1
-                weight[i] = 1 - x_p[i]
-            elseif i == length(x_p)+1
-                weight[i] = x_p[i-1]
-            else
-                weight[i] = x_p[i-1] - x_p[i]
-            end
-        end
-        # get indecies
-        fill!(index, 0)
-        i_index = 0
-        for i = 1:(length(x_p)+1)
-            siz = 1
-            ct = 0
-            good_count = 1
-            if i > 1
-                i_index = i_index + 2^(n_ind[i-1])
-            end
-            for k = 1:length(x)
-                if !isnan(x_p2[k])
-                    u_cube = ((i_index & good_count) > 0)
-                    good_count <<= 1
-                else
-                    u_cube = false
-                end
-                if u_cube
-                    index[i] += (ihi[k] - 1 - ct) * siz
-                else
-                    index[i] += (ilo[k] - 1 - ct) * siz
-                end
-                siz = siz*cut_counts[k]
-                ct += cut_counts[k]
-            end
-            index[i] += 1
-        end
-        weight = weight ./ sum(weight)
-    else
-        # else return the index of the point with weight 1
-        return [onCutIdx]::Vector{Int}, [1.0]::Vector{Float64}
     end
 
-    # assign zero weight to the padded zeros
-    for i = (length(x_p)+2):length(weight); weight[i] = 0.0; index[i] = 1; end
+    # initialize sort indecies
+    for i = 1:length(n_ind); n_ind[i] = i; end 
+    # sort translated and scaled x values
+    sortperm!(n_ind, x_p, rev=true) 
+    x_p = x_p[n_ind]
+    n_ind = n_ind - 1
+
+    # get weight
+    for i = 1:(length(x_p)+1)
+        if i == 1
+            weight[i] = 1 - x_p[i]
+        elseif i == length(x_p)+1
+            weight[i] = x_p[i-1]
+        else
+            weight[i] = x_p[i-1] - x_p[i]
+        end
+    end
+
+    # get indecies
+    fill!(index, 0)
+    i_index = 0
+    for i = 1:(length(x_p)+1)
+        siz = 1
+        ct = 0
+        good_count = 1
+        if i > 1
+            i_index = i_index + 2^(n_ind[i-1])
+        end
+        for k = 1:length(x)
+            onHi = ((i_index & good_count) > 0)
+            good_count <<= 1
+            if onHi
+                index[i] += (ihi[k] - 1 - ct) * siz
+            else
+                index[i] += (ilo[k] - 1 - ct) * siz
+            end
+            siz = siz*cut_counts[k]
+            ct += cut_counts[k]
+        end
+        index[i] += 1
+    end
+
+    weight = weight ./ sum(weight)
+    
     return index::Vector{Int}, weight::Vector{Float64}
 end
 

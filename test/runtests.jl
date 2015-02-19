@@ -29,8 +29,9 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
     if testType==:random
         # Interpolate in GridInterpolations with the same points, report any discrepancy
         # Select a number of random points and compare the interpolation results.
+        testPoint = zeros(numDims)
         for i=1:numRandomTests
-            testPoint = rand(numDims)
+            rand!(testPoint)
             testI = gridI[((pointsPerDim-1)*testPoint+1)...]
             testM = interpolate(gridM,dataM,testPoint)
 
@@ -49,8 +50,9 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
 
     if testType==:extrapNeg
         # Test behavior outside the grid, i.e. extrapolation:
+        testPoint = zeros(numDims)
         for i=1:numRandomTests
-            testPoint = -rand(numDims)
+            testPoint = -rand!(testPoint)
             testI = gridI[((pointsPerDim-1)*testPoint+1)...]
             testM = interpolate(gridM,dataM,testPoint)
 

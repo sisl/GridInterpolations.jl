@@ -27,7 +27,7 @@ using GridInterpolations
 
 ## Interpolation
 
-Create a rectangular and a simplex interpolation grids in two dimensions, a data array, and a point of interest:
+Create two-dimensional rectangular and simplex interpolation grids, a data array, and a point of interest:
 ```julia
 grid = RectangleGrid([0., 0.5, 1.],[0., 0.5, 1.])  	# rectangular grid
 sGrid = SimplexGrid([0., 0.5, 1.],[0., 0.5, 1.])	# simplex grid
@@ -35,7 +35,7 @@ gridData = [8., 1., 6., 3., 5., 7., 4., 9., 2.]   	# vector of value data at eac
 x = [0.25, 0.75]  									# point at which to perform interpolation
 ```
 
-Perform the interpolation on the rectangular grid:
+Perform interpolation on the rectangular grid:
 ```julia
 julia> interpolate(grid,gridData,x)
 5.25

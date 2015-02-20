@@ -1,6 +1,6 @@
 module GridInterpolations
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, show, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
+export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
 
 abstract AbstractGrid
 
@@ -70,7 +70,18 @@ function SimplexGrid(cutPoints::Vector{Float64}...)
     SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
 end
 
-Base.show(io::IO, grid::AbstractGrid) = show(io, grid.cutPoints)
+Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
+Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
+
+# showall returns a valid constructor incantation - it will be called when repr is called on a grid
+function Base.showall(io::IO, grid::AbstractGrid)
+    print(io, "$(typeof(grid))(")
+    for v in grid.cutPoints
+        show(io, v)
+        print(io, ',')
+    end
+    print(io, ')')
+end
 
 function ind2x(grid::AbstractGrid, ind::Int)
     ndims = dimensions(grid)

@@ -74,12 +74,13 @@ Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
 
 # showall returns a valid constructor incantation - it will be called when repr is called on a grid
-function Base.showall(io::IO, grid::SimplexGrid)
-    argstring = ""
+function Base.showall(io::IO, grid::AbstractGrid)
+    print(io, "$(typeof(grid))(")
     for v in grid.cutPoints
-        argstring = string(argstring, repr(v), ",")
+        show(io, v)
+        print(io, ',')
     end
-    print(io, "$(typeof(grid))($argstring)")
+    print(io, ')')
 end
 
 function ind2x(grid::AbstractGrid, ind::Int)

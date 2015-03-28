@@ -90,7 +90,7 @@ function ind2x(grid::AbstractGrid, ind::Int)
     x::Array{Float64}
 end
 
-function ind2x!(grid::AbstractGrid, ind::Int, x::Array{Float64})
+function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
     ndims = dimensions(grid)
     stride = grid.cut_counts[1]
     for i=2:ndims-1
@@ -108,7 +108,7 @@ function ind2x!(grid::AbstractGrid, ind::Int, x::Array{Float64})
 end
 
 # masked interpolation ignores points that are masked
-function maskedInterpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{Float64}, mask::BitArray{1})
+function maskedInterpolate(grid::AbstractGrid, data::Vector, x::Vector, mask::BitArray{1})
     index, weight = interpolants(grid, x)
     val = 0
     totalWeight = 0
@@ -122,14 +122,14 @@ function maskedInterpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{
     return val / totalWeight
 end
 
-interpolate(grid::AbstractGrid, data::Array, x::Vector{Float64}) = interpolate(grid, float64(data[:]), x)
+interpolate(grid::AbstractGrid, data::Array, x::Vector) = interpolate(grid, float64(data[:]), x)
 
-function interpolate(grid::AbstractGrid, data::Vector{Float64}, x::Vector{Float64})
+function interpolate(grid::AbstractGrid, data::Vector, x::Vector)
     index, weight = interpolants(grid, x)
     dot(data[index], weight)
 end
 
-function interpolants(grid::RectangleGrid, x::Vector{Float64})
+function interpolants(grid::RectangleGrid, x::Vector)
     cut_counts = grid.cut_counts
     cuts = grid.cuts
 
@@ -197,7 +197,7 @@ function interpolants(grid::RectangleGrid, x::Vector{Float64})
     grid.index::Vector{Int}, grid.weight::Vector{Float64}
 end
 
-function interpolants(grid::SimplexGrid, x::Vector{Float64})
+function interpolants(grid::SimplexGrid, x::Vector)
 
     weight = grid.weight
     index  = grid.index

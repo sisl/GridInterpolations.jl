@@ -108,7 +108,7 @@ function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
 end
 
 # masked interpolation ignores points that are masked
-function maskedInterpolate(grid::AbstractGrid, data::Vector, x::Vector, mask::BitArray{1})
+function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::Vector, mask::BitArray{1})
     index, weight = interpolants(grid, x)
     val = 0
     totalWeight = 0
@@ -122,9 +122,9 @@ function maskedInterpolate(grid::AbstractGrid, data::Vector, x::Vector, mask::Bi
     return val / totalWeight
 end
 
-interpolate(grid::AbstractGrid, data::Array, x::Vector) = interpolate(grid, float64(data[:]), x)
+interpolate(grid::AbstractGrid, data::Matrix, x::Vector) = interpolate(grid, float64(data[:]), x)
 
-function interpolate(grid::AbstractGrid, data::Vector, x::Vector)
+function interpolate(grid::AbstractGrid, data::DenseArray, x::Vector)
     index, weight = interpolants(grid, x)
     dot(data[index], weight)
 end

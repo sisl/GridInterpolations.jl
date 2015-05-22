@@ -175,10 +175,18 @@ function checkCounters()
     if length(grid) != nPts || dimensions(grid) != dims
         return false
     end
+    data = rand(10,10)
+    temp = interpolate(grid, data, [-1.5,1.5])
+    temp = interpolate(grid, data, [1.,1.])
     grid = SimplexGrid([1.:10], [1.:10])
     if length(grid) != nPts || dimensions(grid) != dims
         return false
     end
+    temp = interpolate(grid, data, [-1.5,1.5])
+    temp = interpolate(grid, data, [1.,1.])
+    temp = interpolate(grid, data, [1.5,1.5])
+    showcompact(grid)
+    show(grid)
     return true
 end
 

@@ -1,7 +1,7 @@
 # GridInterpolations
 
 [![Build Status](https://travis-ci.org/sisl/GridInterpolations.jl.svg?branch=master)](https://travis-ci.org/sisl/GridInterpolations.jl)
-[![Coverage Status](https://coveralls.io/repos/sisl/GridInterpolations.jl/badge.png)](https://coveralls.io/r/sisl/GridInterpolations.jl)
+[![Coverage Status](https://coveralls.io/repos/sisl/GridInterpolations.jl/badge.svg)](https://coveralls.io/r/sisl/GridInterpolations.jl)
 
 This package performs multivariate interpolation on a rectilinear grid. At the moment, it provides implementations of multilinear and simplex interpolation.
 

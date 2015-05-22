@@ -168,13 +168,47 @@ function mapPt(pt::Int, NPOINTS::Int, NDISC::Int)
     return pt * (NPOINTS-1) / NDISC + 1
 end
 
-@test compareToGrid(:random)==true
-@test compareToGrid(:extrapPos)==true
+function checkCounters()
+    dims = 2
+    nPts = 100
+    grid = RectangleGrid([1.:10], [1.:10])
+    if length(grid) != nPts || dimensions(grid) != dims
+        return false
+    end
+    grid = SimplexGrid([1.:10], [1.:10])
+    if length(grid) != nPts || dimensions(grid) != dims
+        return false
+    end
+    return true
+end
+
+function testMask()
+    x = [1.5, 1.5]
+    vals = [1.:9]
+    mask = falses(9)
+    grid = RectangleGrid([1.:3], [1.:3])
+    interped = interpolate(grid, vals, x)
+    masked   = maskedInterpolate(grid, vals, x, mask)
+    @test_approx_eq_eps interped masked 1e-3
+    mask[1] = true # mask the first entry
+    truth  = 3.6666
+    masked = maskedInterpolate(grid, vals, x, mask)
+    @test_approx_eq_eps truth masked 1e-3
+    return true
+end
+
+
+@test compareToGrid(:random) == true
+@test compareToGrid(:extrapPos) == true
 #@test compareToGrid(:extrapNeg)==true
 
-@test simplexMagic()==true
+@test simplexMagic() == true
 
-@test reprConstruct()==true
+@test reprConstruct() == true
+
+@test checkCounters() == true
+
+@test testMask() == true
 
 include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
 rectangleBenchmark(quiet=true)

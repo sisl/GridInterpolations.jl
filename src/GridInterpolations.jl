@@ -34,7 +34,7 @@ dimensions(grid::RectangleGrid) = length(grid.cut_counts)
 
 dimensions(grid::SimplexGrid) = length(grid.cut_counts)
 
-function RectangleGrid(cutPoints::Vector{Float64}...)
+function RectangleGrid(cutPoints...)
     cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
     cuts = vcat(cutPoints...)
     myCutPoints = Array(Vector{Float64}, length(cutPoints))
@@ -53,7 +53,7 @@ function RectangleGrid(cutPoints::Vector{Float64}...)
     RectangleGrid(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
 end
 
-function SimplexGrid(cutPoints::Vector{Float64}...)
+function SimplexGrid(cutPoints...)
     cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
     cuts = vcat(cutPoints...)
     myCutPoints = Array(Vector{Float64}, length(cutPoints))
@@ -122,7 +122,7 @@ function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::Vector, mask
     return val / totalWeight
 end
 
-interpolate(grid::AbstractGrid, data::Matrix, x::Vector) = interpolate(grid, float64(data[:]), x)
+interpolate(grid::AbstractGrid, data::Matrix, x::Vector) = interpolate(grid, map(Float64, data[:]), x)
 
 function interpolate(grid::AbstractGrid, data::DenseArray, x::Vector)
     index, weight = interpolants(grid, x)
@@ -249,9 +249,9 @@ function interpolants(grid::SimplexGrid, x::Vector)
     end
 
     # initialize sort indecies
-    for i = 1:length(n_ind); n_ind[i] = i; end 
+    for i = 1:length(n_ind); n_ind[i] = i; end
     # sort translated and scaled x values
-    sortperm!(n_ind, x_p, rev=true) 
+    sortperm!(n_ind, x_p, rev=true)
     x_p = x_p[n_ind]
     n_ind = n_ind - 1
 
@@ -291,7 +291,7 @@ function interpolants(grid::SimplexGrid, x::Vector)
     end
 
     weight = weight ./ sum(weight)
-    
+
     return index::Vector{Int}, weight::Vector{Float64}
 end
 

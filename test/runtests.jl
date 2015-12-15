@@ -12,7 +12,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
 
     # Set up the data structures:
     gridI = InterpGrid(gridData, BCnearest, InterpLinear)  		# This is for the Grid package
-    cutPointMat = [0:(1/(pointsPerDim-1)):1]
+    cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
     gridM = RectangleGrid(tuple(cutPoints...)...) 				# Mykel's interpolation package
 
@@ -95,7 +95,7 @@ end
 function getFractionalIndexes(g::AbstractGrid, s::Array)
     # Returns the fractional index of sprime within the grid-defined discretization.
 
-    fracInd = Array(Float64,length(g.cutPoints))
+    fracInd = Array(Int64,length(g.cutPoints))
 
     for i=1:length(g.cutPoints)
         gridDisc = g.cutPoints[i]
@@ -124,18 +124,18 @@ function getFracIndex(vararray::Array, value::Float64)
         i+=1
     end
 
-    return i+(value-vararray[i])/(vararray[i+1] - vararray[i])
+    return i+(value-vararray[i])÷(vararray[i+1] - vararray[i])
 
 end
 
-function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::String="", eps::Float64=1e-10)
+function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::AbstractString="", eps::Float64=1e-10)
     if isempty(checkFileName)
         checkFileName = joinpath(Pkg.dir("GridInterpolations"), "test", "simplexMagicTest20.txt")
     end
 
     val = transpose([ [8.,1,6] [3,5,7] [4,9,2] ]) # transposed magic(3) from matlab
 
-    sGrid = SimplexGrid([1.:NPOINTS], [1.:NPOINTS])
+    sGrid = SimplexGrid(1.:NPOINTS, 1.:NPOINTS)
     sInterpVal = zeros(NDISC, NDISC)
 
     for i = 1:NDISC, j = 1:NDISC
@@ -171,14 +171,14 @@ end
 function checkCounters()
     dims = 2
     nPts = 100
-    grid = RectangleGrid([1.:10], [1.:10])
+    grid = RectangleGrid(1.:10, 1.:10)
     if length(grid) != nPts || dimensions(grid) != dims
         return false
     end
     data = rand(10,10)
     temp = interpolate(grid, data, [-1.5,1.5])
     temp = interpolate(grid, data, [1.,1.])
-    grid = SimplexGrid([1.:10], [1.:10])
+    grid = SimplexGrid(1.:10, 1.:10)
     if length(grid) != nPts || dimensions(grid) != dims
         return false
     end
@@ -192,9 +192,9 @@ end
 
 function testMask()
     x = [1.5, 1.5]
-    vals = [1.:9]
+    vals = collect(1.:9)
     mask = falses(9)
-    grid = RectangleGrid([1.:3], [1.:3])
+    grid = RectangleGrid(1.:3, 1.:3)
     interped = interpolate(grid, vals, x)
     masked   = maskedInterpolate(grid, vals, x, mask)
     @test_approx_eq_eps interped masked 1e-3

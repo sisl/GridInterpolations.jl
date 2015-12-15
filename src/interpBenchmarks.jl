@@ -12,7 +12,7 @@ function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::
     # gridData = rand(cutsDim...)
 
     # Set up the data structures:
-    cutPointMat = [0:(1/(pointsPerDim-1)):1]
+    cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
     sGrid = SimplexGrid(tuple(cutPoints...)...)
     sData = rand(length(sGrid))
@@ -43,7 +43,7 @@ function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests
     # May want to include the Grid module as well, to compare with this implementation
 
     # Set up the data structures:
-    cutPointMat = [0:(1/(pointsPerDim-1)):1]
+    cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
     rGrid = RectangleGrid(tuple(cutPoints...)...)
     rData = rand(length(rGrid))
@@ -73,7 +73,7 @@ function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests:
     gridData = rand(cutsDim...)
 
     # Set up the data structures:
-    cutPointMat = [0:(1/(pointsPerDim-1)):1]
+    cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
     rGrid = RectangleGrid(tuple(cutPoints...)...)
     sGrid = SimplexGrid(tuple(cutPoints...)...)
@@ -117,5 +117,3 @@ function compareSpeedUp(nDims, nPoints)
     end
     return speed
 end
-
-

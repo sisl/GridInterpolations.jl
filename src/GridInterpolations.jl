@@ -12,6 +12,25 @@ type RectangleGrid <: AbstractGrid
     weight::Vector{Float64}
     index2::Vector{Int}
     weight2::Vector{Float64}
+
+    function RectangleGrid(cutPoints...)
+        cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+        cuts = vcat(cutPoints...)
+        myCutPoints = Array(Vector{Float64}, length(cutPoints))
+        for i = 1:length(cutPoints)
+            myCutPoints[i] = cutPoints[i]
+        end
+        numDims = length(cutPoints)
+        index = zeros(Int, 2^numDims)
+        weight = zeros(Float64, 2^numDims)
+        index[1] = 1
+        weight[1] = 1.0
+        index2 = zeros(Int, 2^numDims)
+        weight2 = zeros(Float64, 2^numDims)
+        index2[1] = 1
+        weight2[1] = 1.0
+        new(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
+    end
 end
 
 type SimplexGrid <: AbstractGrid
@@ -24,6 +43,23 @@ type SimplexGrid <: AbstractGrid
     ihi::Vector{Int} # indices of cuts above point
     ilo::Vector{Int} # indices of cuts below point
     n_ind::Vector{Int}
+
+    function SimplexGrid(cutPoints...)
+        cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+        cuts = vcat(cutPoints...)
+        myCutPoints = Array(Vector{Float64}, length(cutPoints))
+        for i = 1:length(cutPoints)
+            myCutPoints[i] = cutPoints[i]
+        end
+        numDims = length(cutPoints)
+        index = zeros(Int, numDims+1) # d+1 points for simplex
+        weight = zeros(Float64, numDims+1)
+        x_p = zeros(numDims) # residuals
+        ihi = zeros(Int, numDims) # indicies of cuts above point
+        ilo = zeros(Int, numDims) # indicies of cuts below point
+        n_ind = zeros(Int, numDims)
+        new(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
+    end
 end
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
@@ -33,42 +69,6 @@ Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
 dimensions(grid::RectangleGrid) = length(grid.cut_counts)
 
 dimensions(grid::SimplexGrid) = length(grid.cut_counts)
-
-function RectangleGrid(cutPoints...)
-    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-    cuts = vcat(cutPoints...)
-    myCutPoints = Array(Vector{Float64}, length(cutPoints))
-    for i = 1:length(cutPoints)
-        myCutPoints[i] = cutPoints[i]
-    end
-    numDims = length(cutPoints)
-    index = zeros(Int, 2^numDims)
-    weight = zeros(Float64, 2^numDims)
-    index[1] = 1
-    weight[1] = 1.0
-    index2 = zeros(Int, 2^numDims)
-    weight2 = zeros(Float64, 2^numDims)
-    index2[1] = 1
-    weight2[1] = 1.0
-    RectangleGrid(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
-end
-
-function SimplexGrid(cutPoints...)
-    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-    cuts = vcat(cutPoints...)
-    myCutPoints = Array(Vector{Float64}, length(cutPoints))
-    for i = 1:length(cutPoints)
-        myCutPoints[i] = cutPoints[i]
-    end
-    numDims = length(cutPoints)
-    index = zeros(Int, numDims+1) # d+1 points for simplex
-    weight = zeros(Float64, numDims+1)
-    x_p = zeros(numDims) # residuals
-    ihi = zeros(Int, numDims) # indicies of cuts above point
-    ilo = zeros(Int, numDims) # indicies of cuts below point
-    n_ind = zeros(Int, numDims)
-    SimplexGrid(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
-end
 
 Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)

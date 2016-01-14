@@ -14,7 +14,7 @@ There are some related packages, such as [Grid.jl](https://github.com/timholy/Gr
 Start Julia and run the following command:
 
 ```julia
-Pkg.clone("https://github.com/sisl/GridInterpolations.jl")
+Pkg.add("GridInterpolations")
 ```
 
 ## Usage

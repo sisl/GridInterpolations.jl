@@ -1,6 +1,7 @@
 using GridInterpolations
 using Base.Test
 using Grid
+using Distances
 
 
 function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::Int=5, testPointsDim::Int=5; numRandomTests::Int=1000, eps::Float64=1e-10)
@@ -326,13 +327,60 @@ function test_knn_implemented()
 	@test isapprox(interpolate(knn4, [1,2,3,4], [2,2]), 2.0, rtol=1e-5)
 	@test isapprox(interpolate(knn4, [1,2,3,4], [4,4]), 3.0, rtol=1e-5)
 	
-#   maskedInterpolate # for free
+	@test maskedInterpolate(knn4, [1,2,3,4], [2,2], BitArray([true, false, false, false])) == 2.5
 end
 test_knn_implemented()
 
+# Test that we can use a variety of metrics from Distances.jl inside of the fast grid
+@test length(KnnFastGrid(3, [2,5], [2,5,10]).balltree.data) == 6
+@test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Euclidean()).balltree.data) == 6 # default
+@test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Minkowski(3.5)).balltree.data) == 6
+@test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Cityblock()).balltree.data) == 6
+@test_throws MethodError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=CosineDist()) # cosine dist is a semimetric
+@test_throws UndefVarError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=MadeUp())
+
+function test_knnfast_implemented()
+    knn = KnnFastGrid(3, [5,2],[100,5])
+	@test length(knn) == 4
+	@test GridInterpolations.dimensions(knn) == 2
+	
+	@test ind2x(knn,1) == [5,100]
+	@test ind2x(knn,2) == [2,100]
+	@test ind2x(knn,3) == [5,5]
+	@test ind2x(knn,4) == [2,5]
+	x = [0,0]
+	ind2x!(knn, 4, x)
+	@test x == [2,5]
+	
+	knn2 = KnnFastGrid(2, [1,2,3,4],[1,2])
+	# In this AbstractGrid type, indices are:
+	# 1: (1,1), 2: (2,1), 3: (3,1), 4:(4,1)
+	# 5: (1,2), 6: (2,2), 7: (3,2), 8:(4,2)
+	indices, weights = interpolants(knn2, [1.5, 1])
+	@test weights == [0.5,0.5]
+	@test Set(indices) == Set([1,2])
+	indices, weights = interpolants(knn2, [4, 1.5])
+	@test weights == [0.5,0.5]
+	@test Set(indices) == Set([4,8])
+	
+    knn3 = KnnFastGrid(1, [2,5],[2,5])
+	@test interpolate(knn3, [1,2,3,4], [2,2]) == 1.0
+	@test interpolate(knn3, [1,2,3,4], [5,5]) == 4.0
+	@test interpolate(knn3, [1,2,3,4], [6,6]) == 4.0
+	@test interpolate(knn3, [1,2,3,4], [3,5]) == 3.0
+	
+    knn4 = KnnFastGrid(3, [1,5],[1,5])
+	@test isapprox(interpolate(knn4, [1,2,3,4], [2,2]), 2.0, rtol=1e-5)
+	@test isapprox(interpolate(knn4, [1,2,3,4], [4,4]), 3.0, rtol=1e-5)
+	
+	@test maskedInterpolate(knn4, [1,2,3,4], [2,2], BitArray([true, false, false, false])) == 2.5
+end
+test_knnfast_implemented()
 
 
-include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
-rectangleBenchmark()
-simplexBenchmark()
+
+#include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
 #compareBenchmarks(quiet=true)
+
+
+println("All tests complete")

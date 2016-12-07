@@ -76,10 +76,18 @@ end
 
 
 
+benchmark(RectangleGrid, quiet=true)
+benchmark(RectangleGrid, quiet=true)
+benchmark(RectangleGrid)
+benchmark(SimplexGrid, quiet=true)
+benchmark(SimplexGrid, quiet=true)
+benchmark(SimplexGrid)
+benchmark(KnnGrid, k=1, quiet=true)
+benchmark(KnnGrid, k=1, quiet=true)
 
+Profile.clear()
+@profile (for i = 1:100; benchmark(KnnGrid, k=1); end)
+Profile.print()
+Profile.print(format=:flat)
 
-#benchmark(SimplexGrid)
-#benchmark(RectangleGrid)
-#benchmark(KnnGrid, k=1)
-
-compareBenchmarks();
+#compareBenchmarks();

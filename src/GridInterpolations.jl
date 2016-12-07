@@ -414,14 +414,14 @@ function interpolants(knn::KnnGrid, x::Vector, dist_metric::PreMetric = Euclidea
     # to a distance function
     possibilities = zeros(num_row, num_col)
     i = 1
-    for p in product(possibilities_by_dim...)
-        possibilities[:,i] = collect(p)
+    for p in product(possibilities_by_dim...) #############################################6 as killer of speed
+        possibilities[:,i] = collect(p) 
         i += 1
     end
 
     # Get relative distances and their best order
     distances = colwise(dist_metric, possibilities, x)
-    best_order = sortperm(distances)
+    best_order = sortperm(distances)  ####################################### also killer of speed
 
     indices = zeros(Int, knn.k)
     for col in 1:knn.k

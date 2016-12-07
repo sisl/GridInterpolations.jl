@@ -3,110 +3,66 @@
 using GridInterpolations
 
 
-
-function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
-    # Calculate simplex interpolation benchmarks
+function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false, k=1)
+    # Calculate interpolation benchmarks
     # create a multi-dimensional test Grid with data, cut points, etc.
-
-    # cutsDim = pointsPerDim*ones(Int,numDims)
-    # gridData = rand(cutsDim...)
-
+	
     # Set up the data structures:
     cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
-    sGrid = SimplexGrid(tuple(cutPoints...)...)
-    sData = rand(length(sGrid))
+	
+	if interpType == SimplexGrid
+		grid = SimplexGrid(tuple(cutPoints...)...)
+	elseif interpType == RectangleGrid
+		grid = RectangleGrid(tuple(cutPoints...)...)
+	elseif interpType == KnnGrid
+		grid = KnnGrid(k, tuple(cutPoints...)...)
+	end
+	
+	data = rand(length(grid))
 
     testPoint = rand(numDims,numRandomTests)
 
     tic()
     for i=1:numRandomTests
-        testM = interpolate(sGrid,sData,testPoint[:,i])
+        testM = interpolate(grid,data,testPoint[:,i])
     end
-    elapsedTime = toc()
+    elapsedTime = toq()
 
     if !quiet
-        display("Simplex interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("$numRandomTests interpolations required $elapsedTime seconds")
-        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
+        println("$(label(grid)) interpolation of $numDims dimensions with $pointsPerDim cut points per dimension:")
+        println("  $numRandomTests interpolations required $elapsedTime seconds")
+        println(string("  10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
     end
 
     return elapsedTime
-
 end
 
-
-function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
-    # Calculate rectangular interpolation benchmarks
-    # create a multi-dimensional test Grid with data, cut points, etc.
-
-    # May want to include the Grid module as well, to compare with this implementation
-
-    # Set up the data structures:
-    cutPointMat = 0:(1/(pointsPerDim-1)):1
-    cutPoints = [cutPointMat for i=1:numDims]
-    rGrid = RectangleGrid(tuple(cutPoints...)...)
-    rData = rand(length(rGrid))
-
-    testPoint = rand(numDims,numRandomTests)
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(rGrid,rData,testPoint[:,i])
-    end
-    elapsedTime = toc()
-
-    if !quiet
-        display("Rectangular interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("$numRandomTests interpolations required $elapsedTime seconds")
-        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
-    end
-    return elapsedTime
-
-end
 
 function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false,
     returnSpeed=false)
     # Compare rectangular and simplex interpolation benchmarks
 
-    cutsDim = pointsPerDim*ones(Int,numDims)
-    gridData = rand(cutsDim...)
-
-    # Set up the data structures:
-    cutPointMat = 0:(1/(pointsPerDim-1)):1
-    cutPoints = [cutPointMat for i=1:numDims]
-    rGrid = RectangleGrid(tuple(cutPoints...)...)
-    sGrid = SimplexGrid(tuple(cutPoints...)...)
-    rsData = rand(length(sGrid))
-
-    testPoint = rand(numDims,numRandomTests)
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(sGrid,rsData,testPoint[:,i])
-    end
-    elapsedTimeSimplex = toc()
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(rGrid,rsData,testPoint[:,i])
-    end
-    elapsedTimeRectangle = toc()
+    elapsedTimeSimplex = benchmark(SimplexGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
+    elapsedTimeRectangle = benchmark(RectangleGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
+    elapsedTimeKnn1 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
+    elapsedTimeKnn3 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
+#    elapsedTimeKnn5 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=5);
 
     if !quiet
-        display("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("Simplex   required $elapsedTimeSimplex sec")
-        display("Rectangle required $elapsedTimeRectangle sec")
-        display(string("Simplex was faster by a factor of ", elapsedTimeRectangle/elapsedTimeSimplex))
+        println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
+        println("  Rectangle required $elapsedTimeRectangle sec")
+        println("  Simplex   required $elapsedTimeSimplex sec")
+        println("  1-NN       required $elapsedTimeKnn1 sec")
+        println("  3-NN       required $elapsedTimeKnn3 sec")
+#        println("  5-NN       required $elapsedTimeKnn5 sec")
     end
 
     if returnSpeed
         return elapsedTimeRectangle/elapsedTimeSimplex
     end
 
-
     return 0.0
-
 end
 
 function compareSpeedUp(nDims, nPoints)
@@ -117,3 +73,13 @@ function compareSpeedUp(nDims, nPoints)
     end
     return speed
 end
+
+
+
+
+
+#benchmark(SimplexGrid)
+#benchmark(RectangleGrid)
+#benchmark(KnnGrid, k=1)
+
+compareBenchmarks();

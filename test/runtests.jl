@@ -185,8 +185,8 @@ function checkCounters()
     temp = interpolate(grid, data, [-1.5,1.5])
     temp = interpolate(grid, data, [1.,1.])
     temp = interpolate(grid, data, [1.5,1.5])
-    showcompact(grid)
-    show(grid)
+#    showcompact(grid)
+#    show(grid)
     return true
 end
 
@@ -218,7 +218,121 @@ end
 
 @test testMask() == true
 
+
+
+function test_x2ind_knn()
+	knn = KnnGrid(3, [2,5,150,10,20,100],[2,5],[1,2,3,5,6])
+	@test ind2x(knn, x2ind(knn, [2, 2, 6])) == [2, 2, 6]
+	@test ind2x(knn, x2ind(knn, [20, 5, 3])) == [20, 5, 3]
+	@test ind2x(knn, x2ind(knn, [2, 2, 1])) == [2, 2, 1]
+	@test ind2x(knn, x2ind(knn, [100, 5, 6])) == [100, 5, 6]
+end
+test_x2ind_knn()
+
+
+# Check function to get nearest k in dim
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 12, 2)) == Set([10, 5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 11, 2)) == Set([10,5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 11, 3)) == Set([10,5,2,20])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 50, 3)) == Set([5, 10, 20])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 50, 1)) == Set([20])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 100, 1)) == Set([100])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5,10,20,100,150], 80, 1)) == Set([100])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 1, 1)) == Set([2])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 2, 1)) == Set([2])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 3, 1)) == Set([2])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 4, 1)) == Set([5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 5, 1)) == Set([5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 6, 1)) == Set([5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 3.5, 1)) == Set([2,5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 1, 2)) == Set([2,5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 2, 2)) == Set([2,5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2,5], 3, 2)) == Set([2,5])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2], 1, 1)) == Set([2])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2], 2, 1)) == Set([2])
+@test Set(GridInterpolations.get_nearest_k_in_dim([2], 3, 1)) == Set([2])
+@test_throws ErrorException GridInterpolations.get_nearest_k_in_dim([], 3, 1)
+
+
+# Check implementation of knn
+function test_knn_cutpoints_sorted()
+    knn = KnnGrid(3, [5,2],[100,5])
+    return knn.cutPoints[1] == [2,5] && knn.cutPoints[2] == [5,100]
+end
+@test test_knn_cutpoints_sorted() == true
+
+
+# Check that duplicates are disallowed
+@test_throws ErrorException KnnGrid(3, [1,1])
+@test_throws ErrorException RectangleGrid([1,1])
+@test_throws ErrorException SimplexGrid([1,1])
+
+
+# Sanity check overall implementations
+function test_rect_implemented()
+    rgrid = RectangleGrid([2,5],[2,5])
+	
+	@test length(rgrid) == 4
+	@test GridInterpolations.dimensions(rgrid) == 2
+	
+	@test ind2x(rgrid,1) == [2,2]
+	@test ind2x(rgrid,2) == [5,2]
+	@test ind2x(rgrid,3) == [2,5]
+	@test ind2x(rgrid,4) == [5,5]
+	x = [0,0]
+	ind2x!(rgrid, 4, x)
+	@test x == [5,5]
+	
+	@test interpolants(rgrid, [1,1]) == ([1],[1.0])
+	@test interpolants(rgrid, [2,5]) == ([3],[1.0])
+	
+	indices, weights = interpolants(rgrid, [1.5,3])
+	@test indices == [1,3]
+	@test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
+	
+	@test interpolate(rgrid, [1,2,3,4], [1,1]) == 1.0
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+	@test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+	
+	@test interpolate(rgrid, [1,2,3,4], [1.5,3]) == 1.6666666666666665
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+end
+test_rect_implemented()
+
+function test_knn_implemented()
+    knn = KnnGrid(3, [5,2],[100,5])
+	@test length(knn) == 4
+	@test GridInterpolations.dimensions(knn) == 2
+	
+	@test ind2x(knn,1) == [2,5]
+	@test ind2x(knn,2) == [5,5]
+	@test ind2x(knn,3) == [2,100]
+	@test ind2x(knn,4) == [5,100]
+	x = [0,0]
+	ind2x!(knn, 4, x)
+	@test x == [5,100]
+	
+	knn2 = KnnGrid(2, [2,5,150,10,20,100],[2,5],[1,2,3,5,6])
+	@test interpolants(knn2, [50,3,3.2]) == ([28,16],[0.5,0.5])
+	
+    knn3 = KnnGrid(1, [2,5],[2,5])
+	@test interpolate(knn3, [1,2,3,4], [2,2]) == 1.0
+	@test interpolate(knn3, [1,2,3,4], [5,5]) == 4.0
+	@test interpolate(knn3, [1,2,3,4], [6,6]) == 4.0
+	@test interpolate(knn3, [1,2,3,4], [3,5]) == 3.0
+	
+    knn4 = KnnGrid(3, [1,5],[1,5])
+	@test isapprox(interpolate(knn4, [1,2,3,4], [2,2]), 2.0, rtol=1e-5)
+	@test isapprox(interpolate(knn4, [1,2,3,4], [4,4]), 3.0, rtol=1e-5)
+	
+#   maskedInterpolate # for free
+end
+test_knn_implemented()
+
+
+
 include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
-rectangleBenchmark(quiet=true)
-simplexBenchmark(quiet=true)
-compareBenchmarks(quiet=true)
+rectangleBenchmark()
+simplexBenchmark()
+#compareBenchmarks(quiet=true)

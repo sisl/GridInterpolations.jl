@@ -1,6 +1,9 @@
 module GridInterpolations
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
+using Distances # for distance metrics for knn
+using Iterators # for product function used in knn
+
+export AbstractGrid, RectangleGrid, SimplexGrid, KnnGrid, dimensions, length, label, ind2x, ind2x!, x2ind, interpolate, maskedInterpolate, interpolants
 
 abstract AbstractGrid
 
@@ -18,6 +21,9 @@ type RectangleGrid <: AbstractGrid
         cuts = vcat(cutPoints...)
         myCutPoints = Array(Vector{Float64}, length(cutPoints))
         for i = 1:length(cutPoints)
+			if length(Set(cutPoints[i])) != length(cutPoints[i])
+				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -49,6 +55,9 @@ type SimplexGrid <: AbstractGrid
         cuts = vcat(cutPoints...)
         myCutPoints = Array(Vector{Float64}, length(cutPoints))
         for i = 1:length(cutPoints)
+			if length(Set(cutPoints[i])) != length(cutPoints[i])
+				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -62,13 +71,40 @@ type SimplexGrid <: AbstractGrid
     end
 end
 
-Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
+type KnnGrid <: AbstractGrid
+    cutPoints::Vector{Vector{Float64}} # points in each dimension, guaranteed sorted
+    cut_counts::Vector{Int} # count of cuts in each dimension
+#    index::Vector{Int}
+#    weight::Vector{Float64}
+    k::Int
 
+    function KnnGrid(k, cutPoints...)
+        myCutPoints = Array(Vector{Float64}, length(cutPoints))
+        cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+        for i = 1:length(cutPoints)
+            if length(Set(cutPoints[i])) != length(cutPoints[i])
+                error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+            end
+            myCutPoints[i] = sort(cutPoints[i])
+        end
+#        numDims = length(cutPoints)
+#        index = zeros(Int, 2^numDims)
+#        weight = zeros(Float64, 2^numDims)
+        
+        new(myCutPoints, cut_counts, k)#, index, weight, k)
+    end
+end
+Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
 Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
+Base.length(grid::KnnGrid) = prod(grid.cut_counts)
 
 dimensions(grid::RectangleGrid) = length(grid.cut_counts)
-
 dimensions(grid::SimplexGrid) = length(grid.cut_counts)
+dimensions(grid::KnnGrid) = length(grid.cut_counts)
+
+label(grid::RectangleGrid) = "multilinear interpolation grid"
+label(grid::SimplexGrid) = "simplex interpolation grid"
+label(grid::KnnGrid) = "knn interpolation grid"
 
 Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
@@ -91,6 +127,13 @@ function ind2x(grid::AbstractGrid, ind::Int)
 end
 
 function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
+    # Populates x with the value at ind. 
+	# In-place version of ind2x.
+	# Example:
+	#   rgrid = RectangleGrid([2,5],[20,50])
+	#   x = [0,0]
+	#   ind2x!(rgrid,4,x)  # x now contains [5,50]
+    #   @show x            # displays [5,50]
     ndims = dimensions(grid)
     stride = grid.cut_counts[1]
     for i=2:ndims-1
@@ -106,6 +149,63 @@ function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
     x[1] = grid.cutPoints[1][ind]
     nothing
 end
+
+function x2ind(grid::KnnGrid, x::Vector)
+    # Inverse of ind2x(grid, idx) = vector
+    # Here, we provide a vector x and the grid and get the corresponding index
+	# Uses a rectangular grid & relies on the cutPoints being sorted,
+	# so only valid for KnnGrid
+    num_dim = dimensions(grid)
+    totalDimensionsPassed = 1
+    index = 1
+    for dimid in 1:num_dim
+        idx = searchsorted(grid.cutPoints[dimid], x[dimid])
+        index += totalDimensionsPassed*(collect(idx) - 1)
+        totalDimensionsPassed *= length(grid.cutPoints[dimid])
+    end
+    index[1]::Int
+end
+
+
+function get_nearest_k_in_dim(this_dimension::Vector, x::Number, k::Int)
+    # Assumes this_dimension is sorted
+    # Returns the k closest values to x in this_dimension
+    # If the k'th closest value is tied for distance to x, will return k+1 values
+	if length(this_dimension) == 0
+		error(@sprintf("Dimension must have one or more cutpoints"))
+	end
+	
+    possibilities_this_dim = []
+    
+    firstIndexGte = searchsortedfirst(this_dimension, x)
+	
+    left = firstIndexGte - 1
+    right = firstIndexGte	
+    while length(possibilities_this_dim) < k && (left >= 1 || right <= length(this_dimension))
+        if left < 1
+            push!(possibilities_this_dim, this_dimension[right])
+            right += 1
+        elseif right > length(this_dimension)
+            push!(possibilities_this_dim, this_dimension[left])
+            left -= 1
+                
+        elseif (x - this_dimension[left]) == (this_dimension[right] - x) 
+            push!(possibilities_this_dim, this_dimension[left])
+            left -= 1
+            push!(possibilities_this_dim, this_dimension[right])
+            right += 1
+        elseif (x - this_dimension[left]) < (this_dimension[right] - x) 
+            push!(possibilities_this_dim, this_dimension[left])
+            left -= 1
+        else
+            push!(possibilities_this_dim, this_dimension[right])
+            right += 1
+        end
+    end
+
+    return possibilities_this_dim
+end
+
 
 # masked interpolation ignores points that are masked
 function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::Vector, mask::BitArray{1})
@@ -295,6 +395,45 @@ function interpolants(grid::SimplexGrid, x::Vector)
     return index::Vector{Int}, weight::Vector{Float64}
 end
 
+function interpolants(knn::KnnGrid, x::Vector, dist_metric::PreMetric = Euclidean())
+    @assert length(x) == GridInterpolations.dimensions(knn)
+    
+    # Get list of possible k "nearest" values in each dimension
+    possibilities_by_dim = [] 
+    num_row = length(knn.cutPoints) # one row per dimension
+    num_col = 1 # a column for every combination of k-values on each dimension
+                # (but note that k-values can sometimes come back with length k+1) 
+    for idx in 1:length(x)
+        this_dimension = knn.cutPoints[idx] 
+        p = get_nearest_k_in_dim(this_dimension, x[idx], knn.k)
+        num_col *= length(p)
+        push!(possibilities_by_dim, p)
+    end
+
+    # Convert the possibilities into a matrix that we can feed 
+    # to a distance function
+    possibilities = zeros(num_row, num_col)
+    i = 1
+    for p in product(possibilities_by_dim...)
+        possibilities[:,i] = collect(p)
+        i += 1
+    end
+
+    # Get relative distances and their best order
+    distances = colwise(dist_metric, possibilities, x)
+    best_order = sortperm(distances)
+
+    indices = zeros(Int, knn.k)
+    for col in 1:knn.k
+        ind_of_current_best = best_order[col]
+        indices[col] = x2ind(knn,possibilities[:,ind_of_current_best])
+    end
+    weights = ones(knn.k)/knn.k
+    
+    return (indices::Vector{Int}, weights::Vector{Float64})
+end
+
+
 #################### sortperm! is included in Julia v0.4 ###################
 
 using Base.Order # for sortperm!, should be availiable in v 0.4
@@ -307,3 +446,7 @@ lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=For
 end
 
 end # module
+
+
+
+

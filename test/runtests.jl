@@ -364,6 +364,9 @@ function test_knnfast_implemented()
 	@test Set(indices) == Set([4,8])
 	
     knn3 = KnnFastGrid(1, [2,5],[2,5])
+	# In this AbstractGrid type, indices are:
+	# 1: (2,2), 2: (2,5)
+	# 3: (5,2), 4: (5,5)
 	@test interpolate(knn3, [1,2,3,4], [2,2]) == 1.0
 	@test interpolate(knn3, [1,2,3,4], [5,5]) == 4.0
 	@test interpolate(knn3, [1,2,3,4], [6,6]) == 4.0

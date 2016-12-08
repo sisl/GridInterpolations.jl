@@ -3,7 +3,7 @@
 using GridInterpolations
 
 
-function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false, k=1)
+function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=5000; quiet=false, k=1)
     # Calculate interpolation benchmarks
     # create a multi-dimensional test Grid with data, cut points, etc.
 	
@@ -24,46 +24,59 @@ function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRa
 	
 	data = rand(length(grid))
 
-    testPoint = rand(numDims,numRandomTests)
 
 	# Warmup
-    interpolate(grid,data,testPoint[:,1])
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(grid,data,testPoint[:,i])
+    interpolate(grid,data,rand(numDims))
+	
+	# Run the evaluation: totalInterpolations attempts
+	# at interpolating numRandomTests points
+	totalInterpolations = 1000
+	
+	timesToInterpolate = zeros(numRandomTests)
+	
+	averageTime = 0
+    for test=1:numRandomTests
+		testPoint = rand(numDims, totalInterpolations)
+		tic()
+		for i=1:totalInterpolations
+			interpolate(grid,data,testPoint[:,i])
+		end
+		elapsedTime = toq()
+		timesToInterpolate[test] = elapsedTime
     end
-    elapsedTime = toq()
-	@show numDims,pointsPerDim, length(grid), elapsedTime
+	averageTime = mean(timesToInterpolate)
+	plusMinus95CI = std(timesToInterpolate)*2
+	#@show numDims,pointsPerDim, length(grid), averageTime
 
     if !quiet
         println("$(label(grid)) interpolation of $numDims dimensions with $pointsPerDim cut points per dimension:")
-        println("  $numRandomTests interpolations required $elapsedTime seconds")
+        println("  requires $averageTime seconds (+/- $plusMinus95CI for 95% CI) on average to interpolate $totalInterpolations test points (averaged over $numRandomTests attempts)")
     end
 
-    return elapsedTime
+    return averageTime, plusMinus95CI
 end
 
 
 function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
     # Compare rectangular and simplex interpolation benchmarks
 
-    elapsedTimeSimplex = benchmark(SimplexGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
-    elapsedTimeRectangle = benchmark(RectangleGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
-    elapsedTimeKnn1 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
-    elapsedTimeKnn3 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
+    elapsedTimeSimplex, sdSimplex = benchmark(SimplexGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
+    elapsedTimeRectangle, sdRectangle = benchmark(RectangleGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
+    elapsedTimeKnn1, sdKnn1 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
+    elapsedTimeKnn3, sdKnn3 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
 #    elapsedTimeKnn5 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=5);
-    elapsedTimeKnnFast1 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
-    elapsedTimeKnnFast3 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
+    elapsedTimeKnnFast1, sdKnnFast1 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
+    elapsedTimeKnnFast3, sdKnnFast3 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
 
     if !quiet
         println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
-        println("  Rectangle required $elapsedTimeRectangle sec")
-        println("  Simplex   required $elapsedTimeSimplex sec")
-        println("  1-NN(m)   required $elapsedTimeKnn1 sec")
-        println("  3-NN(m)   required $elapsedTimeKnn3 sec")
+        println("  Rectangle required $elapsedTimeRectangle +/- $sdRectangle sec")
+        println("  Simplex   required $elapsedTimeSimplex +/- $sdSimplex sec")
+        println("  1-NN(m)   required $elapsedTimeKnn1 +/- $sdKnn1 sec")
+        println("  3-NN(m)   required $elapsedTimeKnn3 +/- $sdKnn3 sec")
 #        println("  5-NN       required $elapsedTimeKnn5 sec")
-        println("  1-NN(b)   required $elapsedTimeKnnFast1 sec")
-        println("  3-NN(b)   required $elapsedTimeKnnFast3 sec")
+        println("  1-NN(b)   required $elapsedTimeKnnFast1 +/- $sdKnnFast1 sec")
+        println("  3-NN(b)   required $elapsedTimeKnnFast3 +/- $sdKnnFast3 sec")
     end
 
 end
@@ -92,8 +105,8 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 			continue
 		end
 		
-		sspeed = benchmark(SimplexGrid, i, nPointsPerDim, nTests, quiet=true);
-		rspeed = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
+		sspeed, ssd = benchmark(SimplexGrid, i, nPointsPerDim, nTests, quiet=true);
+		rspeed, rsd = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
 		
 		@show sspeed, rspeed, rspeed/sspeed
 		push!(speedup, (i,rspeed/sspeed) )
@@ -103,10 +116,59 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 end
 
 
-compareBenchmarks(8, 10);
+#compareBenchmarks(8, 10);
 #compareSpeedUp(1000,100000000)
 
+numPts = 10
+for numDim = 1:10
+	try
+		mean, std = benchmark(RectangleGrid, numDim, numPts, 5000, quiet=true)
+		println("rectangle $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+	try
+		mean, std = benchmark(SimplexGrid, numDim, numPts, 5000, quiet=true)
+		println("simplex $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+	try
+		mean, std = benchmark(KnnGrid, numDim, numPts, 5000, quiet=true, k=1)
+		println("knn $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+	try
+		mean, std = benchmark(KnnGrid, numDim, numPts, 5000, quiet=true, k=1)
+		println("knn $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+	try
+		mean, std = benchmark(KnnFastGrid, numDim, numPts, 5000, quiet=true, k=3)
+		println("knnfast $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+	try
+		mean, std = benchmark(KnnFastGrid, numDim, numPts, 5000, quiet=true, k=3)
+		println("knnfast $numDim $mean $std ")
+	catch
+		# do nothing
+	end
+	
+end
+
+
+
 #=
+
 
 # Warm the cache & get results
 benchmark(RectangleGrid, quiet=true)
@@ -117,6 +179,16 @@ benchmark(RectangleGrid)
 benchmark(SimplexGrid, quiet=true)
 benchmark(SimplexGrid, quiet=true)
 benchmark(SimplexGrid)
+
+# Warm the cache & get results
+benchmark(KnnGrid, quiet=true)
+benchmark(KnnGrid, quiet=true)
+benchmark(KnnGrid)
+
+# Warm the cache & get results
+benchmark(KnnFastGrid, quiet=true)
+benchmark(KnnFastGrid, quiet=true)
+benchmark(KnnFastGrid)
 
 # Warm the cache & get results
 benchmark(KnnGrid, k=1, quiet=true)

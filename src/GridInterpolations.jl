@@ -471,7 +471,7 @@ end
 
 function interpolants(knnInstance::KnnFastGrid, x::Vector)
     @assert length(x) == GridInterpolations.dimensions(knnInstance)
-	indices, dists = knn(knnInstance.balltree, x, knnInstance.k)#, sortres=false, skip=true)
+	indices, dists = knn(knnInstance.balltree, x, knnInstance.k)
     weights = ones(knnInstance.k)/knnInstance.k
 	
     return (indices::Vector{Int}, weights::Vector{Float64})

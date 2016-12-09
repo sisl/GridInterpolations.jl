@@ -336,7 +336,7 @@ test_knn_implemented()
 @test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Euclidean()).balltree.data) == 6 # default
 @test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Minkowski(3.5)).balltree.data) == 6
 @test length(KnnFastGrid(3, [2,5], [2,5,10], dist_metric=Cityblock()).balltree.data) == 6
-@test_throws MethodError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=CosineDist()) # cosine dist is a semimetric
+@test_throws MethodError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=CosineDist()) # cosine distance is a semimetric
 @test_throws UndefVarError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=MadeUp())
 
 function test_knnfast_implemented()
@@ -379,6 +379,23 @@ function test_knnfast_implemented()
 	@test maskedInterpolate(knn4, [1,2,3,4], [2,2], BitArray([true, false, false, false])) == 2.5
 end
 test_knnfast_implemented()
+
+
+# check whether rectangle & simplex expect sorted order of cutpoints on dimensions
+function test_ordering(grid)	
+	@test ind2x(grid,1) == [2,18] # 1
+	@test ind2x(grid,2) == [5,18] # 2
+	@test ind2x(grid,3) == [2,15] # 3
+	@test ind2x(grid,4) == [5,15] # 4
+	@test ind2x(grid,5) == [2,12] # 5
+	@test ind2x(grid,6) == [5,12] # 6
+	
+	return interpolate(grid, [1,2,3,4,5,6], [6, 20]) == 2.0
+end
+@test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
+@test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
+@test_throws ErrorException test_ordering( KnnGrid(k=1[2,5], [18,15,12]) )
+@test test_ordering( KnnFastGrid(k=1, [2,5], [18,15,12]) ) == true
 
 
 

@@ -486,6 +486,16 @@ function interpolants(knnInstance::KnnFastGrid, x::Vector)
 end
 
 
+#################### sortperm! is included in Julia v0.4 ###################
+
+using Base.Order # for sortperm!, should be availiable in v 0.4
+using Base.Sort # for sortperm!
+const DEFAULT_UNSTABLE = QuickSort
+
+function sortperm!{I<:Integer}(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTABLE,
+lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward)
+    sort!(x, alg, Perm(ord(lt,by,rev,order),v))
+end
 
 end # module
 

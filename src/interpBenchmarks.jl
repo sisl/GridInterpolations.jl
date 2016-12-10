@@ -115,33 +115,11 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 end
 
 
-#compareBenchmarks(8, 10);
+
+#= 
+
+#compareBenchmarks();
 #compareSpeedUp(1000,100000000)
-
-elapsedTimeSimplex, sdSimplex = benchmark(SimplexGrid, 1, 10, 1000);
-
-
-#=
-
-
-numPts = 10
-for numDim = 3:6
-	try
-		mean, std = benchmark(RectangleGrid, numDim, numPts, 5000, quiet=true)
-		println("rectangle $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-	
-	try
-		mean, std = benchmark(SimplexGrid, numDim, numPts, 5000, quiet=true)
-		println("simplex $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-end
-
-
 
 # Warm the cache & get results
 benchmark(RectangleGrid, quiet=true)

@@ -433,8 +433,8 @@ end
 
 
 
-#include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
-#compareBenchmarks(quiet=true)
+include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
+compareBenchmarks(quiet=true)
 
 
 println("All tests complete")

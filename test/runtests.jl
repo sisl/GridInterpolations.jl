@@ -222,7 +222,7 @@ end
 
 
 function test_x2ind_knn()
-	knn = KnnGrid(3, [2,5,150,10,20,100],[2,5],[1,2,3,5,6])
+	knn = KnnGrid(3, [2,5,10,20,100,150],[2,5],[1,2,3,5,6])
 	@test ind2x(knn, x2ind(knn, [2, 2, 6])) == [2, 2, 6]
 	@test ind2x(knn, x2ind(knn, [20, 5, 3])) == [20, 5, 3]
 	@test ind2x(knn, x2ind(knn, [2, 2, 1])) == [2, 2, 1]
@@ -255,12 +255,7 @@ test_x2ind_knn()
 @test_throws ErrorException GridInterpolations.get_nearest_k_in_dim([], 3, 1)
 
 
-# Check implementation of knn
-function test_knn_cutpoints_sorted()
-    knn = KnnGrid(3, [5,2],[100,5])
-    return knn.cutPoints[1] == [2,5] && knn.cutPoints[2] == [5,100]
-end
-@test test_knn_cutpoints_sorted() == true
+@test_throws ErrorException KnnGrid(3, [5,2],[100,5]) 
 
 
 # Check that duplicates are disallowed
@@ -295,14 +290,53 @@ function test_rect_implemented()
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
 	@test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
 	
-	@test interpolate(rgrid, [1,2,3,4], [1.5,3]) == 1.6666666666666665
+	@test isapprox(interpolate(rgrid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
 end
 test_rect_implemented()
 
+
+# Sanity check overall implementations
+function test_simplex_implemented()
+    grid = SimplexGrid([2,5],[2,5])
+	
+	@test length(grid) == 4
+	@test GridInterpolations.dimensions(grid) == 2
+	
+	@test ind2x(grid,1) == [2,2]
+	@test ind2x(grid,2) == [5,2]
+	@test ind2x(grid,3) == [2,5]
+	@test ind2x(grid,4) == [5,5]
+	x = [0,0]
+	ind2x!(grid, 4, x)
+	@test x == [5,5]
+	
+	indices, weights = interpolants(grid, [1,1])
+	full_weight_indices = find(x -> x == 1, weights)
+	@test  length(full_weight_indices) == 1
+	@test  weights[full_weight_indices[1]] == 1.0
+	
+	indices, weights = interpolants(grid, [1.5,3])
+	full_weight_indices = find(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
+	@test  length(full_weight_indices) == 1
+	@test  isapprox(weights[full_weight_indices[1]], 0.666667, rtol=1e-5) == true
+	full_weight_indices = find(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
+	@test  length(full_weight_indices) == 1
+	@test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
+	
+	@test interpolate(grid, [1,2,3,4], [1,1]) == 1.0
+	@test maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+	@test isnan(maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+	
+	@test isapprox(interpolate(grid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
+	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+end
+test_simplex_implemented()
+
 function test_knn_implemented()
-    knn = KnnGrid(3, [5,2],[100,5])
+    knn = KnnGrid(3, [2,5],[5,100])
 	@test length(knn) == 4
 	@test GridInterpolations.dimensions(knn) == 2
 	
@@ -314,7 +348,7 @@ function test_knn_implemented()
 	ind2x!(knn, 4, x)
 	@test x == [5,100]
 	
-	knn2 = KnnGrid(2, [2,5,150,10,20,100],[2,5],[1,2,3,5,6])
+	knn2 = KnnGrid(2, [2,5,10,20,100,150],[2,5],[1,2,3,5,6])
 	@test interpolants(knn2, [50,3,3.2]) == ([28,16],[0.5,0.5])
 	
     knn3 = KnnGrid(1, [2,5],[2,5])
@@ -394,8 +428,8 @@ function test_ordering(grid)
 end
 @test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
 @test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
-@test_throws ErrorException test_ordering( KnnGrid(k=1[2,5], [18,15,12]) )
-@test test_ordering( KnnFastGrid(k=1, [2,5], [18,15,12]) ) == true
+@test_throws ErrorException test_ordering( KnnGrid(1, [2,5], [18,15,12]) )
+@test test_ordering( KnnFastGrid(1, [2,5], [18,15,12]) ) == true
 
 
 

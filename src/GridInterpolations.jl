@@ -25,6 +25,9 @@ type RectangleGrid <: AbstractGrid
 			if length(Set(cutPoints[i])) != length(cutPoints[i])
 				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
 			end
+			if !issorted(cutPoints[i])
+				error("Cut points must be sorted")
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -59,6 +62,9 @@ type SimplexGrid <: AbstractGrid
 			if length(Set(cutPoints[i])) != length(cutPoints[i])
 				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
 			end
+			if !issorted(cutPoints[i])
+				error("Cut points must be sorted")
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -88,7 +94,10 @@ type KnnGrid <: AbstractGrid
             if length(Set(cutPoints[i])) != length(cutPoints[i])
                 error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
             end
-            myCutPoints[i] = sort(cutPoints[i])
+			if !issorted(cutPoints[i])
+				error("Cut points must be sorted")
+			end
+            myCutPoints[i] = cutPoints[i]
         end
         
         new(myCutPoints, cut_counts, dist_metric, k)
@@ -135,11 +144,10 @@ dimensions(grid::SimplexGrid) = length(grid.cut_counts)
 dimensions(grid::KnnGrid) = length(grid.cut_counts)
 dimensions(grid::KnnFastGrid) = length(grid.balltree.data[1])
 
-
-
 label(grid::RectangleGrid) = "multilinear interpolation grid"
 label(grid::SimplexGrid) = "simplex interpolation grid"
 label(grid::KnnGrid) = "knn interpolation grid"
+label(grid::KnnFastGrid) = "knn fast (with balltree) interpolation grid"
 
 Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
@@ -478,16 +486,6 @@ function interpolants(knnInstance::KnnFastGrid, x::Vector)
 end
 
 
-#################### sortperm! is included in Julia v0.4 ###################
-
-using Base.Order # for sortperm!, should be availiable in v 0.4
-using Base.Sort # for sortperm!
-const DEFAULT_UNSTABLE = QuickSort
-
-function sortperm!{I<:Integer}(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTABLE,
-lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward)
-    sort!(x, alg, Perm(ord(lt,by,rev,order),v))
-end
 
 end # module
 

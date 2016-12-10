@@ -87,17 +87,14 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 	# and returns the speedup of simplex over the
 	# rectangle interpolation
 	
-	nTests = 1000
+	nTests = 30
 	
-	# Compile everything & warm up the cache
-	benchmark(SimplexGrid, 1, 10, nTests, quiet=true);
-	benchmark(SimplexGrid, 1, 10, nTests, quiet=true);
-	benchmark(RectangleGrid, 1, 10, nTests, quiet=true);
-	benchmark(RectangleGrid, 1, 10, nTests, quiet=true);
+	# Compile everything
+	benchmark(KnnFastGrid, 3, 10, nTests, quiet=true);
 
 	println("begin")
     speedup = []
-    for i = 1:nDims
+    for i = 2:nDims
 		nPointsPerDim = nPoints^(1/i)
 		nPointsPerDim = convert(Int, round(nPointsPerDim))
 		
@@ -105,13 +102,15 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 			continue
 		end
 		
-		sspeed, ssd = benchmark(SimplexGrid, i, nPointsPerDim, nTests, quiet=true);
-		rspeed, rsd = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
+		sspeed, ssd = benchmark(KnnFastGrid, i, nPointsPerDim, nTests, quiet=true, k=3);
+		println("knnfast3 $i $nPointsPerDim $sspeed $ssd")
+
 		
-		@show sspeed, rspeed, rspeed/sspeed
-		push!(speedup, (i,rspeed/sspeed) )
+#		push!(speedup, (i,rspeed/sspeed) )
         gc()
     end
+	
+	
     return speedup
 end
 
@@ -119,8 +118,14 @@ end
 #compareBenchmarks(8, 10);
 #compareSpeedUp(1000,100000000)
 
+elapsedTimeSimplex, sdSimplex = benchmark(SimplexGrid, 1, 10, 1000);
+
+
+#=
+
+
 numPts = 10
-for numDim = 1:10
+for numDim = 3:6
 	try
 		mean, std = benchmark(RectangleGrid, numDim, numPts, 5000, quiet=true)
 		println("rectangle $numDim $mean $std ")
@@ -134,40 +139,8 @@ for numDim = 1:10
 	catch
 		# do nothing
 	end
-	
-	try
-		mean, std = benchmark(KnnGrid, numDim, numPts, 5000, quiet=true, k=1)
-		println("knn $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-	
-	try
-		mean, std = benchmark(KnnGrid, numDim, numPts, 5000, quiet=true, k=1)
-		println("knn $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-	
-	try
-		mean, std = benchmark(KnnFastGrid, numDim, numPts, 5000, quiet=true, k=3)
-		println("knnfast $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-	
-	try
-		mean, std = benchmark(KnnFastGrid, numDim, numPts, 5000, quiet=true, k=3)
-		println("knnfast $numDim $mean $std ")
-	catch
-		# do nothing
-	end
-	
 end
 
-
-
-#=
 
 
 # Warm the cache & get results

@@ -36,7 +36,9 @@ Create two-dimensional interpolation grids, a data array, and a point of interes
 grid = RectangleGrid([0., 0.5, 1.],[0., 0.5, 1.])  	# rectangular grid
 sGrid = SimplexGrid([0., 0.5, 1.],[0., 0.5, 1.])	# simplex grid
 kGrid = KnnFastGrid(3, [0., 0.5, 1.],[0., 0.5, 1.])	# 3-nearest neighbor using ball trees from NearestNeighbors.jl 
-kGridNaive = KnnGrid(3,[0., 0.5, 1.],[0., 0.5, 1.])	# 3-nearest neighbor using naive implementation 
+# implictly uses Euclidean distance and weights as normalized (1/dist)
+kGridNaive = KnnGrid(3, [0., 0.5, 1.],[0., 0.5, 1.]; dist_metric=Cityblock(), weighted=false)	# 3-nearest neighbor using naive implementation, 
+# specifically using a distance from Distances.jl and uniform weights
 # KnnGrid has low 1-NN overhead for 10k+ points but worse computational complexity 
 # than KnnFastGrid outside the case of a large number of points with k=1
 gridData = [8., 1., 6., 3., 5., 7., 4., 9., 2.]   	# vector of value data at each cut

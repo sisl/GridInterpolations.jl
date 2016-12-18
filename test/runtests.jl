@@ -336,7 +336,7 @@ end
 test_simplex_implemented()
 
 function test_knn_implemented()
-    knn = KnnGrid(3, [2,5],[5,100])
+    knn = KnnGrid(3, [2,5],[5,100]; weighted=false)
 	@test length(knn) == 4
 	@test GridInterpolations.dimensions(knn) == 2
 	
@@ -348,22 +348,37 @@ function test_knn_implemented()
 	ind2x!(knn, 4, x)
 	@test x == [5,100]
 	
-	knn2 = KnnGrid(2, [2,5,10,20,100,150],[2,5],[1,2,3,5,6])
+	knn2 = KnnGrid(2, [2,5,10,20,100,150],[2,5],[1,2,3,5,6]; weighted=false)
 	@test interpolants(knn2, [50,3,3.2]) == ([28,16],[0.5,0.5])
 	
-    knn3 = KnnGrid(1, [2,5],[2,5])
+    knn3 = KnnGrid(1, [2,5],[2,5]; weighted=false)
 	@test interpolate(knn3, [1,2,3,4], [2,2]) == 1.0
 	@test interpolate(knn3, [1,2,3,4], [5,5]) == 4.0
 	@test interpolate(knn3, [1,2,3,4], [6,6]) == 4.0
 	@test interpolate(knn3, [1,2,3,4], [3,5]) == 3.0
 	
-    knn4 = KnnGrid(3, [1,5],[1,5])
+    knn4 = KnnGrid(3, [1,5],[1,5]; weighted=false)
 	@test isapprox(interpolate(knn4, [1,2,3,4], [2,2]), 2.0, rtol=1e-5)
 	@test isapprox(interpolate(knn4, [1,2,3,4], [4,4]), 3.0, rtol=1e-5)
 	
 	@test maskedInterpolate(knn4, [1,2,3,4], [2,2], BitArray([true, false, false, false])) == 2.5
 end
 test_knn_implemented()
+
+
+function test_knn_weighting()
+	knn = KnnGrid(1, [1,2],[1,2]; weighted=true)
+	@test interpolants(knn, [1,1]) == ([1],[1.0])
+	
+	knn2 = KnnGrid(2, [1,2],[1,2]; weighted=true)
+	closest1 = x2ind(knn, [1,1])
+	closest2 = x2ind(knn, [1,2])
+	indices, weights = interpolants(knn2, [1.1,1.2])
+	@test indices == [closest1, closest2]
+	@test isapprox(weights, [.782871, .217129], rtol=1e-5)
+	@test sum(weights) == 1
+end
+test_knn_weighting()
 
 # Test that we can use a variety of metrics from Distances.jl inside of the fast grid
 @test length(KnnFastGrid(3, [2,5], [2,5,10]).balltree.data) == 6
@@ -374,7 +389,7 @@ test_knn_implemented()
 @test_throws UndefVarError KnnFastGrid(3, [2,5], [2,5,10], dist_metric=MadeUp())
 
 function test_knnfast_implemented()
-    knn = KnnFastGrid(3, [5,2],[100,5])
+    knn = KnnFastGrid(3, [5,2],[100,5]; weighted=false)
 	@test length(knn) == 4
 	@test GridInterpolations.dimensions(knn) == 2
 	
@@ -386,7 +401,7 @@ function test_knnfast_implemented()
 	ind2x!(knn, 4, x)
 	@test x == [2,5]
 	
-	knn2 = KnnFastGrid(2, [1,2,3,4],[1,2])
+	knn2 = KnnFastGrid(2, [1,2,3,4],[1,2]; weighted=false)
 	# In this AbstractGrid type, indices are:
 	# 1: (1,1), 2: (2,1), 3: (3,1), 4:(4,1)
 	# 5: (1,2), 6: (2,2), 7: (3,2), 8:(4,2)
@@ -397,7 +412,7 @@ function test_knnfast_implemented()
 	@test weights == [0.5,0.5]
 	@test Set(indices) == Set([4,8])
 	
-    knn3 = KnnFastGrid(1, [2,5],[2,5])
+    knn3 = KnnFastGrid(1, [2,5],[2,5]; weighted=false)
 	# In this AbstractGrid type, indices are:
 	# 1: (2,2), 2: (2,5)
 	# 3: (5,2), 4: (5,5)
@@ -406,7 +421,7 @@ function test_knnfast_implemented()
 	@test interpolate(knn3, [1,2,3,4], [6,6]) == 4.0
 	@test interpolate(knn3, [1,2,3,4], [3,5]) == 3.0
 	
-    knn4 = KnnFastGrid(3, [1,5],[1,5])
+    knn4 = KnnFastGrid(3, [1,5],[1,5]; weighted=false)
 	@test isapprox(interpolate(knn4, [1,2,3,4], [2,2]), 2.0, rtol=1e-5)
 	@test isapprox(interpolate(knn4, [1,2,3,4], [4,4]), 3.0, rtol=1e-5)
 	
@@ -414,6 +429,17 @@ function test_knnfast_implemented()
 end
 test_knnfast_implemented()
 
+function test_knnfast_weighting()
+	knn = KnnFastGrid(1, [1,2],[1,2]; weighted=true)
+	@test interpolants(knn, [1,1]) == ([1],[1.0])
+	
+	knn2 = KnnFastGrid(2, [1,2],[1,2]; weighted=true)
+	indices, weights = interpolants(knn2, [1.1,1.2])
+	@test indices == [3, 1]
+	@test isapprox(weights, [.21712937, .78287062], rtol=1e-5)
+	@test sum(weights) == 1
+end
+test_knnfast_weighting()
 
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions
 function test_ordering(grid)	
@@ -434,7 +460,6 @@ end
 
 
 include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
-compareBenchmarks(quiet=true)
-
+compareBenchmarks(4, 10, 100, quiet=false)
 
 println("All tests complete")

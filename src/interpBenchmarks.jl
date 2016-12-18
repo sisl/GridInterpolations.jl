@@ -68,16 +68,14 @@ function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests:
     elapsedTimeKnnFast1, sdKnnFast1 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
     elapsedTimeKnnFast3, sdKnnFast3 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
 
-    if !quiet
-        println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
-        println("  Rectangle required $elapsedTimeRectangle +/- $sdRectangle sec")
-        println("  Simplex   required $elapsedTimeSimplex +/- $sdSimplex sec")
-        println("  1-NN(m)   required $elapsedTimeKnn1 +/- $sdKnn1 sec")
-        println("  3-NN(m)   required $elapsedTimeKnn3 +/- $sdKnn3 sec")
+	println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
+	println("  Rectangle required $elapsedTimeRectangle +/- $sdRectangle sec")
+	println("  Simplex   required $elapsedTimeSimplex +/- $sdSimplex sec")
+	println("  1-NN(m)   required $elapsedTimeKnn1 +/- $sdKnn1 sec")
+	println("  3-NN(m)   required $elapsedTimeKnn3 +/- $sdKnn3 sec")
 #        println("  5-NN       required $elapsedTimeKnn5 sec")
-        println("  1-NN(b)   required $elapsedTimeKnnFast1 +/- $sdKnnFast1 sec")
-        println("  3-NN(b)   required $elapsedTimeKnnFast3 +/- $sdKnnFast3 sec")
-    end
+	println("  1-NN(b)   required $elapsedTimeKnnFast1 +/- $sdKnnFast1 sec")
+	println("  3-NN(b)   required $elapsedTimeKnnFast3 +/- $sdKnnFast3 sec")
 
 end
 

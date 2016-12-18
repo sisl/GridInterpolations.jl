@@ -86,8 +86,9 @@ type KnnGrid <: AbstractGrid
     cut_counts::Vector{Int} # count of cuts in each dimension
 	dist_metric::Metric
     k::Int
+	is_weighted::Bool
 
-    function KnnGrid(k, cutPoints...; dist_metric=Euclidean())
+    function KnnGrid(k, cutPoints...; dist_metric=Euclidean(), weighted=true)
         myCutPoints = Array(Vector{Float64}, length(cutPoints))
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         for i = 1:length(cutPoints)
@@ -100,7 +101,7 @@ type KnnGrid <: AbstractGrid
             myCutPoints[i] = cutPoints[i]
         end
         
-        new(myCutPoints, cut_counts, dist_metric, k)
+        new(myCutPoints, cut_counts, dist_metric, k, weighted)
     end
 end
 
@@ -109,8 +110,9 @@ type KnnFastGrid <: AbstractGrid
     cut_counts::Vector{Int} # count of cuts in each dimension; used for ind2x
 	balltree::BallTree # data structure for fast knn searches; stores the dist_metric internally
     k::Int
+	is_weighted::Bool
 
-    function KnnFastGrid(k, cutPoints...; dist_metric=Euclidean())
+    function KnnFastGrid(k, cutPoints...; dist_metric=Euclidean(), weighted=true)
 		cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
 
 		myCutPoints = Array(Vector{Float64}, length(cutPoints))
@@ -130,7 +132,7 @@ type KnnFastGrid <: AbstractGrid
 			i += 1 
 		end
 		balltree = BallTree(data, dist_metric)
-		new(myCutPoints, cut_counts, balltree, k)
+		new(myCutPoints, cut_counts, balltree, k, weighted)
     end
 end
 
@@ -394,7 +396,7 @@ function interpolants(grid::SimplexGrid, x::Vector)
     # initialize sort indecies
     for i = 1:length(n_ind); n_ind[i] = i; end
     # sort translated and scaled x values
-    sortperm!(n_ind, x_p, rev=true)
+    sortperm!(n_ind, x_p, rev=true) ############################################# killer of speed
     x_p = x_p[n_ind]
     n_ind = n_ind - 1
 
@@ -439,6 +441,8 @@ function interpolants(grid::SimplexGrid, x::Vector)
 end
 
 function interpolants(knn::KnnGrid, x::Vector)
+	# 
+
     @assert length(x) == GridInterpolations.dimensions(knn)
     
     # Get list of possible k "nearest" values in each dimension
@@ -457,7 +461,7 @@ function interpolants(knn::KnnGrid, x::Vector)
     # to a distance function
     possibilities = zeros(num_row, num_col)
     i = 1
-    for p in product(possibilities_by_dim...) #############################################6 as killer of speed
+    for p in product(possibilities_by_dim...) ############################################# killer of speed
         possibilities[:,i] = collect(p) 
         i += 1
     end
@@ -466,12 +470,24 @@ function interpolants(knn::KnnGrid, x::Vector)
     distances = colwise(knn.dist_metric, possibilities, x)
     best_order = sortperm(distances)  ####################################### also killer of speed
 
+    weights = ones(knn.k)/knn.k
     indices = zeros(Int, knn.k)
     for col in 1:knn.k
         ind_of_current_best = best_order[col]
         indices[col] = x2ind(knn,possibilities[:,ind_of_current_best])
+		
+		if knn.is_weighted
+			weights[col] = distances[ind_of_current_best]
+		end
     end
-    weights = ones(knn.k)/knn.k
+	if knn.is_weighted
+		if knn.k == 1 && maximum(weights) == 0
+			weights[1] = 1
+		else
+			weights = 1./weights # naively convert from distances to similarities
+			weights = weights/sum(weights)
+		end
+	end
     
     return (indices::Vector{Int}, weights::Vector{Float64})
 end
@@ -480,7 +496,15 @@ end
 function interpolants(knnInstance::KnnFastGrid, x::Vector)
     @assert length(x) == GridInterpolations.dimensions(knnInstance)
 	indices, dists = knn(knnInstance.balltree, x, knnInstance.k)
-    weights = ones(knnInstance.k)/knnInstance.k
+	weights = ones(knnInstance.k)/knnInstance.k
+	if knnInstance.is_weighted
+		if knnInstance.k == 1 && maximum(dists) == 0
+			weights[1] = 1
+		else
+			weights = 1./dists # naively convert from distances to similarities
+			weights = weights/sum(weights)
+		end
+	end
 	
     return (indices::Vector{Int}, weights::Vector{Float64})
 end

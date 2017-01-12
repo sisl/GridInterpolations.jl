@@ -76,8 +76,8 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 	# Compile everything
 	benchmark(RectangleGrid, 3, 10, nTests, quiet=true);
 
-	println("begin")
     speedup = []
+	println("How large is the simplex grid speed up over the multilinear grid?")
     for i = 2:nDims
 		nPointsPerDim = nPoints^(1/i)
 		nPointsPerDim = convert(Int, round(nPointsPerDim))
@@ -86,8 +86,9 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 			continue
 		end
 		
-		sspeed, ssd = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
-		println("rectanglegrid $i $nPointsPerDim $sspeed $ssd")
+		sspeed, ssd = benchmark(SimplexGrid, i, nPointsPerDim, nTests, quiet=true);
+		println("  limiting to $i dimensions and therefore $nPointsPerDim points per dim:")
+		println("    mean speed: $sspeed, std dev: $ssd")
 
 		
 #		push!(speedup, (i,rspeed/sspeed) )
@@ -100,24 +101,24 @@ end
 
 
 
-#= 
 
-#compareBenchmarks();
-#compareSpeedUp(1000,100000000)
 
-# Warm the cache & get results
-benchmark(RectangleGrid, quiet=true)
-benchmark(RectangleGrid, quiet=true)
-benchmark(RectangleGrid)
+compareBenchmarks();
+compareSpeedUp(1000,100000)
 
 # Warm the cache & get results
-benchmark(SimplexGrid, quiet=true)
-benchmark(SimplexGrid, quiet=true)
-benchmark(SimplexGrid)
+#benchmark(RectangleGrid, quiet=true)
+#benchmark(RectangleGrid, quiet=true)
+#benchmark(RectangleGrid)
 
+# Warm the cache & get results
+#benchmark(SimplexGrid, quiet=true)
+#benchmark(SimplexGrid, quiet=true)
+#benchmark(SimplexGrid)
+
+#=
 Profile.clear()
 @profile (for i = 1:100; benchmark(SimplexGrid, k=1); end)
 Profile.print()
 Profile.print(format=:flat)
-
 =#

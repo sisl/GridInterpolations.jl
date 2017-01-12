@@ -1,7 +1,6 @@
 using GridInterpolations
 using Base.Test
 using Grid
-using Distances
 
 
 function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::Int=5, testPointsDim::Int=5; numRandomTests::Int=1000, eps::Float64=1e-10)

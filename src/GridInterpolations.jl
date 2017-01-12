@@ -1,6 +1,7 @@
 module GridInterpolations
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
+
+export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
 
 abstract AbstractGrid
 
@@ -18,6 +19,12 @@ type RectangleGrid <: AbstractGrid
         cuts = vcat(cutPoints...)
         myCutPoints = Array(Vector{Float64}, length(cutPoints))
         for i = 1:length(cutPoints)
+			if length(Set(cutPoints[i])) != length(cutPoints[i])
+				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+			end
+			if !issorted(cutPoints[i])
+				error("Cut points must be sorted")
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -49,6 +56,12 @@ type SimplexGrid <: AbstractGrid
         cuts = vcat(cutPoints...)
         myCutPoints = Array(Vector{Float64}, length(cutPoints))
         for i = 1:length(cutPoints)
+			if length(Set(cutPoints[i])) != length(cutPoints[i])
+				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+			end
+			if !issorted(cutPoints[i])
+				error("Cut points must be sorted")
+			end
             myCutPoints[i] = cutPoints[i]
         end
         numDims = length(cutPoints)
@@ -63,12 +76,13 @@ type SimplexGrid <: AbstractGrid
 end
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
-
 Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
 
 dimensions(grid::RectangleGrid) = length(grid.cut_counts)
-
 dimensions(grid::SimplexGrid) = length(grid.cut_counts)
+
+label(grid::RectangleGrid) = "multilinear interpolation grid"
+label(grid::SimplexGrid) = "simplex interpolation grid"
 
 Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
@@ -91,6 +105,13 @@ function ind2x(grid::AbstractGrid, ind::Int)
 end
 
 function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
+    # Populates x with the value at ind. 
+	# In-place version of ind2x.
+	# Example:
+	#   rgrid = RectangleGrid([2,5],[20,50])
+	#   x = [0,0]
+	#   ind2x!(rgrid,4,x)  # x now contains [5,50]
+    #   @show x            # displays [5,50]
     ndims = dimensions(grid)
     stride = grid.cut_counts[1]
     for i=2:ndims-1
@@ -106,6 +127,7 @@ function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
     x[1] = grid.cutPoints[1][ind]
     nothing
 end
+
 
 # masked interpolation ignores points that are masked
 function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::Vector, mask::BitArray{1})
@@ -251,7 +273,7 @@ function interpolants(grid::SimplexGrid, x::Vector)
     # initialize sort indecies
     for i = 1:length(n_ind); n_ind[i] = i; end
     # sort translated and scaled x values
-    sortperm!(n_ind, x_p, rev=true)
+    sortperm!(n_ind, x_p, rev=true) ############################################# killer of speed
     x_p = x_p[n_ind]
     n_ind = n_ind - 1
 
@@ -266,7 +288,7 @@ function interpolants(grid::SimplexGrid, x::Vector)
         end
     end
 
-    # get indecies
+    # get indices
     fill!(index, 0)
     i_index = 0
     for i = 1:(length(x_p)+1)
@@ -295,6 +317,8 @@ function interpolants(grid::SimplexGrid, x::Vector)
     return index::Vector{Int}, weight::Vector{Float64}
 end
 
+
+
 #################### sortperm! is included in Julia v0.4 ###################
 
 using Base.Order # for sortperm!, should be availiable in v 0.4
@@ -307,3 +331,7 @@ lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=For
 end
 
 end # module
+
+
+
+

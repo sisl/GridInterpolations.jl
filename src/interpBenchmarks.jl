@@ -3,117 +3,121 @@
 using GridInterpolations
 
 
-
-function simplexBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
-    # Calculate simplex interpolation benchmarks
+function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=5000; quiet=false, k=1)
+    # Calculate interpolation benchmarks
     # create a multi-dimensional test Grid with data, cut points, etc.
-
-    # cutsDim = pointsPerDim*ones(Int,numDims)
-    # gridData = rand(cutsDim...)
-
+	
     # Set up the data structures:
     cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
-    sGrid = SimplexGrid(tuple(cutPoints...)...)
-    sData = rand(length(sGrid))
+	cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+	
+	if interpType == SimplexGrid
+		grid = SimplexGrid(tuple(cutPoints...)...)
+	elseif interpType == RectangleGrid
+		grid = RectangleGrid(tuple(cutPoints...)...)
+	end
+	
+	data = rand(length(grid))
 
-    testPoint = rand(numDims,numRandomTests)
 
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(sGrid,sData,testPoint[:,i])
+	# Warmup
+    interpolate(grid,data,rand(numDims))
+	
+	# Run the evaluation: totalInterpolations attempts
+	# at interpolating numRandomTests points
+	totalInterpolations = 1000
+	
+	timesToInterpolate = zeros(numRandomTests)
+	
+	averageTime = 0
+    for test=1:numRandomTests
+		testPoint = rand(numDims, totalInterpolations)
+		tic()
+		for i=1:totalInterpolations
+			interpolate(grid,data,testPoint[:,i])
+		end
+		elapsedTime = toq()
+		timesToInterpolate[test] = elapsedTime
     end
-    elapsedTime = toc()
+	averageTime = mean(timesToInterpolate)
+	plusMinus95CI = std(timesToInterpolate)*2
+	#@show numDims,pointsPerDim, length(grid), averageTime
 
     if !quiet
-        display("Simplex interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("$numRandomTests interpolations required $elapsedTime seconds")
-        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
+        println("$(label(grid)) interpolation of $numDims dimensions with $pointsPerDim cut points per dimension:")
+        println("  requires $averageTime seconds (+/- $plusMinus95CI for 95% CI) on average to interpolate $totalInterpolations test points (averaged over $numRandomTests attempts)")
     end
 
-    return elapsedTime
-
+    return averageTime, plusMinus95CI
 end
 
 
-function rectangleBenchmark(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
-    # Calculate rectangular interpolation benchmarks
-    # create a multi-dimensional test Grid with data, cut points, etc.
-
-    # May want to include the Grid module as well, to compare with this implementation
-
-    # Set up the data structures:
-    cutPointMat = 0:(1/(pointsPerDim-1)):1
-    cutPoints = [cutPointMat for i=1:numDims]
-    rGrid = RectangleGrid(tuple(cutPoints...)...)
-    rData = rand(length(rGrid))
-
-    testPoint = rand(numDims,numRandomTests)
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(rGrid,rData,testPoint[:,i])
-    end
-    elapsedTime = toc()
-
-    if !quiet
-        display("Rectangular interpolation of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("$numRandomTests interpolations required $elapsedTime seconds")
-        display(string("10^6 interpolations would take ", elapsedTime*1000000/numRandomTests, " seconds"))
-    end
-    return elapsedTime
-
-end
-
-function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false,
-    returnSpeed=false)
+function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests::Int=1000; quiet=false)
     # Compare rectangular and simplex interpolation benchmarks
 
-    cutsDim = pointsPerDim*ones(Int,numDims)
-    gridData = rand(cutsDim...)
+    elapsedTimeSimplex, sdSimplex = benchmark(SimplexGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
+    elapsedTimeRectangle, sdRectangle = benchmark(RectangleGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
 
-    # Set up the data structures:
-    cutPointMat = 0:(1/(pointsPerDim-1)):1
-    cutPoints = [cutPointMat for i=1:numDims]
-    rGrid = RectangleGrid(tuple(cutPoints...)...)
-    sGrid = SimplexGrid(tuple(cutPoints...)...)
-    rsData = rand(length(sGrid))
-
-    testPoint = rand(numDims,numRandomTests)
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(sGrid,rsData,testPoint[:,i])
-    end
-    elapsedTimeSimplex = toc()
-
-    tic()
-    for i=1:numRandomTests
-        testM = interpolate(rGrid,rsData,testPoint[:,i])
-    end
-    elapsedTimeRectangle = toc()
-
-    if !quiet
-        display("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimenion:")
-        display("Simplex   required $elapsedTimeSimplex sec")
-        display("Rectangle required $elapsedTimeRectangle sec")
-        display(string("Simplex was faster by a factor of ", elapsedTimeRectangle/elapsedTimeSimplex))
-    end
-
-    if returnSpeed
-        return elapsedTimeRectangle/elapsedTimeSimplex
-    end
-
-
-    return 0.0
+	println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
+	println("  Rectangle required $elapsedTimeRectangle +/- $sdRectangle sec")
+	println("  Simplex   required $elapsedTimeSimplex +/- $sdSimplex sec")
 
 end
 
-function compareSpeedUp(nDims, nPoints)
-    speed = zeros(nDims)
-    for i = 1:nDims
-        speed[i] = compareBenchmarks(i, nPoints, 1000, quiet = true, returnSpeed = true)
+function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
+	# Holds the number of nPoints constant to within 
+	# marginoferror, varying the number of dimensions,
+	# and returns the speedup of simplex over the
+	# rectangle interpolation
+	
+	nTests = 30
+	
+	# Compile everything
+	benchmark(RectangleGrid, 3, 10, nTests, quiet=true);
+
+	println("begin")
+    speedup = []
+    for i = 2:nDims
+		nPointsPerDim = nPoints^(1/i)
+		nPointsPerDim = convert(Int, round(nPointsPerDim))
+		
+		if abs(nPointsPerDim^i - nPoints) > marginoferror*nPoints
+			continue
+		end
+		
+		sspeed, ssd = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
+		println("rectanglegrid $i $nPointsPerDim $sspeed $ssd")
+
+		
+#		push!(speedup, (i,rspeed/sspeed) )
         gc()
     end
-    return speed
+	
+	
+    return speedup
 end
+
+
+
+#= 
+
+#compareBenchmarks();
+#compareSpeedUp(1000,100000000)
+
+# Warm the cache & get results
+benchmark(RectangleGrid, quiet=true)
+benchmark(RectangleGrid, quiet=true)
+benchmark(RectangleGrid)
+
+# Warm the cache & get results
+benchmark(SimplexGrid, quiet=true)
+benchmark(SimplexGrid, quiet=true)
+benchmark(SimplexGrid)
+
+Profile.clear()
+@profile (for i = 1:100; benchmark(SimplexGrid, k=1); end)
+Profile.print()
+Profile.print(format=:flat)
+
+=#

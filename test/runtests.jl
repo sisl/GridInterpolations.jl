@@ -185,8 +185,8 @@ function checkCounters()
     temp = interpolate(grid, data, [-1.5,1.5])
     temp = interpolate(grid, data, [1.,1.])
     temp = interpolate(grid, data, [1.5,1.5])
-    showcompact(grid)
-    show(grid)
+#    showcompact(grid)
+#    show(grid)
     return true
 end
 
@@ -218,7 +218,100 @@ end
 
 @test testMask() == true
 
+
+# Check that duplicates are disallowed
+@test_throws ErrorException RectangleGrid([1,1])
+@test_throws ErrorException SimplexGrid([1,1])
+
+
+# Sanity check overall implementations
+function test_rect_implemented()
+    rgrid = RectangleGrid([2,5],[2,5])
+	
+	@test length(rgrid) == 4
+	@test GridInterpolations.dimensions(rgrid) == 2
+	
+	@test ind2x(rgrid,1) == [2,2]
+	@test ind2x(rgrid,2) == [5,2]
+	@test ind2x(rgrid,3) == [2,5]
+	@test ind2x(rgrid,4) == [5,5]
+	x = [0,0]
+	ind2x!(rgrid, 4, x)
+	@test x == [5,5]
+	
+	@test interpolants(rgrid, [1,1]) == ([1],[1.0])
+	@test interpolants(rgrid, [2,5]) == ([3],[1.0])
+	
+	indices, weights = interpolants(rgrid, [1.5,3])
+	@test indices == [1,3]
+	@test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
+	
+	@test interpolate(rgrid, [1,2,3,4], [1,1]) == 1.0
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+	@test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+	
+	@test isapprox(interpolate(rgrid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+end
+test_rect_implemented()
+
+
+# Sanity check overall implementations
+function test_simplex_implemented()
+    grid = SimplexGrid([2,5],[2,5])
+	
+	@test length(grid) == 4
+	@test GridInterpolations.dimensions(grid) == 2
+	
+	@test ind2x(grid,1) == [2,2]
+	@test ind2x(grid,2) == [5,2]
+	@test ind2x(grid,3) == [2,5]
+	@test ind2x(grid,4) == [5,5]
+	x = [0,0]
+	ind2x!(grid, 4, x)
+	@test x == [5,5]
+	
+	indices, weights = interpolants(grid, [1,1])
+	full_weight_indices = find(x -> x == 1, weights)
+	@test  length(full_weight_indices) == 1
+	@test  weights[full_weight_indices[1]] == 1.0
+	
+	indices, weights = interpolants(grid, [1.5,3])
+	full_weight_indices = find(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
+	@test  length(full_weight_indices) == 1
+	@test  isapprox(weights[full_weight_indices[1]], 0.666667, rtol=1e-5) == true
+	full_weight_indices = find(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
+	@test  length(full_weight_indices) == 1
+	@test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
+	
+	@test interpolate(grid, [1,2,3,4], [1,1]) == 1.0
+	@test maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+	@test isnan(maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+	
+	@test isapprox(interpolate(grid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
+	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+end
+test_simplex_implemented()
+
+# check whether rectangle & simplex expect sorted order of cutpoints on dimensions
+function test_ordering(grid)	
+	@test ind2x(grid,1) == [2,18] # 1
+	@test ind2x(grid,2) == [5,18] # 2
+	@test ind2x(grid,3) == [2,15] # 3
+	@test ind2x(grid,4) == [5,15] # 4
+	@test ind2x(grid,5) == [2,12] # 5
+	@test ind2x(grid,6) == [5,12] # 6
+	
+	return interpolate(grid, [1,2,3,4,5,6], [6, 20]) == 2.0
+end
+@test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
+@test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
+
+
+
 include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
-rectangleBenchmark(quiet=true)
-simplexBenchmark(quiet=true)
-compareBenchmarks(quiet=true)
+compareBenchmarks(4, 10, 100, quiet=false)
+
+println("All tests complete")

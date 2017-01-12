@@ -16,10 +16,6 @@ function benchmark(interpType::Type, numDims::Int=6, pointsPerDim::Int=15, numRa
 		grid = SimplexGrid(tuple(cutPoints...)...)
 	elseif interpType == RectangleGrid
 		grid = RectangleGrid(tuple(cutPoints...)...)
-	elseif interpType == KnnGrid
-		grid = KnnGrid(k, tuple(cutPoints...)...)
-	elseif interpType == KnnFastGrid
-		grid = KnnFastGrid(k, tuple(cutPoints...)...)
 	end
 	
 	data = rand(length(grid))
@@ -62,20 +58,10 @@ function compareBenchmarks(numDims::Int=6, pointsPerDim::Int=15, numRandomTests:
 
     elapsedTimeSimplex, sdSimplex = benchmark(SimplexGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
     elapsedTimeRectangle, sdRectangle = benchmark(RectangleGrid, numDims, pointsPerDim, numRandomTests, quiet=true);
-    elapsedTimeKnn1, sdKnn1 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
-    elapsedTimeKnn3, sdKnn3 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
-#    elapsedTimeKnn5 = benchmark(KnnGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=5);
-    elapsedTimeKnnFast1, sdKnnFast1 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=1);
-    elapsedTimeKnnFast3, sdKnnFast3 = benchmark(KnnFastGrid, numDims, pointsPerDim, numRandomTests, quiet=true, k=3);
 
 	println("$numRandomTests interpolations of $numDims dimensions with $pointsPerDim cut points per dimension:")
 	println("  Rectangle required $elapsedTimeRectangle +/- $sdRectangle sec")
 	println("  Simplex   required $elapsedTimeSimplex +/- $sdSimplex sec")
-	println("  1-NN(m)   required $elapsedTimeKnn1 +/- $sdKnn1 sec")
-	println("  3-NN(m)   required $elapsedTimeKnn3 +/- $sdKnn3 sec")
-#        println("  5-NN       required $elapsedTimeKnn5 sec")
-	println("  1-NN(b)   required $elapsedTimeKnnFast1 +/- $sdKnnFast1 sec")
-	println("  3-NN(b)   required $elapsedTimeKnnFast3 +/- $sdKnnFast3 sec")
 
 end
 
@@ -88,7 +74,7 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 	nTests = 30
 	
 	# Compile everything
-	benchmark(KnnFastGrid, 3, 10, nTests, quiet=true);
+	benchmark(RectangleGrid, 3, 10, nTests, quiet=true);
 
 	println("begin")
     speedup = []
@@ -100,8 +86,8 @@ function compareSpeedUp(nDims, nPoints; marginoferror=0.1)
 			continue
 		end
 		
-		sspeed, ssd = benchmark(KnnFastGrid, i, nPointsPerDim, nTests, quiet=true, k=3);
-		println("knnfast3 $i $nPointsPerDim $sspeed $ssd")
+		sspeed, ssd = benchmark(RectangleGrid, i, nPointsPerDim, nTests, quiet=true);
+		println("rectanglegrid $i $nPointsPerDim $sspeed $ssd")
 
 		
 #		push!(speedup, (i,rspeed/sspeed) )
@@ -129,21 +115,8 @@ benchmark(SimplexGrid, quiet=true)
 benchmark(SimplexGrid, quiet=true)
 benchmark(SimplexGrid)
 
-# Warm the cache & get results
-benchmark(KnnGrid, quiet=true)
-benchmark(KnnGrid, quiet=true)
-benchmark(KnnGrid)
-
-# Warm the cache & get results
-benchmark(KnnFastGrid, quiet=true)
-benchmark(KnnFastGrid, quiet=true)
-benchmark(KnnFastGrid)
-
-# Warm the cache & get results
-benchmark(KnnGrid, k=1, quiet=true)
-benchmark(KnnGrid, k=1, quiet=true)
 Profile.clear()
-@profile (for i = 1:100; benchmark(KnnGrid, k=1); end)
+@profile (for i = 1:100; benchmark(SimplexGrid, k=1); end)
 Profile.print()
 Profile.print(format=:flat)
 

@@ -58,7 +58,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         for i=1:numRandomTests
             testPoint = -rand!(testPoint)
             testI = gridI[((pointsPerDim-1)*testPoint+1)...]
-            testM = GridInterpolations.interpolate(gridM,dataM,testPoint)
+            testM = interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
                 display("Failed Random Negative Point Extrapolation Test")
@@ -77,7 +77,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         for i=1:numRandomTests
             testPoint = rand(numDims)+1
             testI = gridI[((pointsPerDim-1)*testPoint+1)...]
-            testM = GridInterpolations.interpolate(gridM,dataM,testPoint)
+            testM = interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
                 display("Failed Random Positive Point Extrapolation Test")

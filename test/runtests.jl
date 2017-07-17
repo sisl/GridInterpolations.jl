@@ -1,6 +1,9 @@
 using GridInterpolations
 using Base.Test
-using Grid
+
+# use import otherwise Interpolations.interpolate conflicts with GridInterpolations.interpolate
+import Interpolations: BSpline, Linear, OnGrid, Flat
+import Interpolations
 
 
 function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::Int=5, testPointsDim::Int=5; numRandomTests::Int=1000, eps::Float64=1e-10)
@@ -11,13 +14,14 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
     gridData = rand(cutsDim...)
 
     # Set up the data structures:
-    gridI = InterpGrid(gridData, BCnearest, InterpLinear)  		# This is for the Grid package
+    gridI = Interpolations.interpolate(gridData, BSpline(Linear()), OnGrid())  		# This is for the Interpolations package
+    gridI = Interpolations.extrapolate(gridI, Flat())
     cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
     gridM = RectangleGrid(tuple(cutPoints...)...) 				# Mykel's interpolation package
 
     # Package the data in a way that can be read by the interpolation package:
-    dataM = Array(Float64,length(gridM))
+    dataM = Array{Float64}(length(gridM))
     for i=1:length(gridM)
         # x = ind2x(gridM, i)
         x = ind2x(gridM, i)
@@ -33,7 +37,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         for i=1:numRandomTests
             rand!(testPoint)
             testI = gridI[((pointsPerDim-1)*testPoint+1)...]
-            testM = interpolate(gridM,dataM,testPoint)
+            testM = GridInterpolations.interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
                 display("Failed Random Point Interpolation Test")
@@ -95,7 +99,7 @@ end
 function getFractionalIndexes(g::AbstractGrid, s::Array)
     # Returns the fractional index of sprime within the grid-defined discretization.
 
-    fracInd = Array(Int64,length(g.cutPoints))
+    fracInd = Array{Int64}(length(g.cutPoints))
 
     for i=1:length(g.cutPoints)
         gridDisc = g.cutPoints[i]
@@ -197,11 +201,11 @@ function testMask()
     grid = RectangleGrid(1.:3, 1.:3)
     interped = interpolate(grid, vals, x)
     masked   = maskedInterpolate(grid, vals, x, mask)
-    @test_approx_eq_eps interped masked 1e-3
+    @test interped ≈ masked atol = 1e-3
     mask[1] = true # mask the first entry
     truth  = 3.6666
     masked = maskedInterpolate(grid, vals, x, mask)
-    @test_approx_eq_eps truth masked 1e-3
+    @test truth ≈ masked atol = 1e-3
     return true
 end
 
@@ -227,10 +231,10 @@ end
 # Sanity check overall implementations
 function test_rect_implemented()
     rgrid = RectangleGrid([2,5],[2,5])
-	
+
 	@test length(rgrid) == 4
 	@test GridInterpolations.dimensions(rgrid) == 2
-	
+
 	@test ind2x(rgrid,1) == [2,2]
 	@test ind2x(rgrid,2) == [5,2]
 	@test ind2x(rgrid,3) == [2,5]
@@ -238,18 +242,18 @@ function test_rect_implemented()
 	x = [0,0]
 	ind2x!(rgrid, 4, x)
 	@test x == [5,5]
-	
+
 	@test interpolants(rgrid, [1,1]) == ([1],[1.0])
 	@test interpolants(rgrid, [2,5]) == ([3],[1.0])
-	
+
 	indices, weights = interpolants(rgrid, [1.5,3])
 	@test indices == [1,3]
 	@test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
-	
+
 	@test interpolate(rgrid, [1,2,3,4], [1,1]) == 1.0
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
 	@test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
-	
+
 	@test isapprox(interpolate(rgrid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
 	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
@@ -260,10 +264,10 @@ test_rect_implemented()
 # Sanity check overall implementations
 function test_simplex_implemented()
     grid = SimplexGrid([2,5],[2,5])
-	
+
 	@test length(grid) == 4
 	@test GridInterpolations.dimensions(grid) == 2
-	
+
 	@test ind2x(grid,1) == [2,2]
 	@test ind2x(grid,2) == [5,2]
 	@test ind2x(grid,3) == [2,5]
@@ -271,12 +275,12 @@ function test_simplex_implemented()
 	x = [0,0]
 	ind2x!(grid, 4, x)
 	@test x == [5,5]
-	
+
 	indices, weights = interpolants(grid, [1,1])
 	full_weight_indices = find(x -> x == 1, weights)
 	@test  length(full_weight_indices) == 1
 	@test  weights[full_weight_indices[1]] == 1.0
-	
+
 	indices, weights = interpolants(grid, [1.5,3])
 	full_weight_indices = find(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
 	@test  length(full_weight_indices) == 1
@@ -284,11 +288,11 @@ function test_simplex_implemented()
 	full_weight_indices = find(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
 	@test  length(full_weight_indices) == 1
 	@test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
-	
+
 	@test interpolate(grid, [1,2,3,4], [1,1]) == 1.0
 	@test maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
 	@test isnan(maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
-	
+
 	@test isapprox(interpolate(grid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
 	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
 	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
@@ -296,14 +300,14 @@ end
 test_simplex_implemented()
 
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions
-function test_ordering(grid)	
+function test_ordering(grid)
 	@test ind2x(grid,1) == [2,18] # 1
 	@test ind2x(grid,2) == [5,18] # 2
 	@test ind2x(grid,3) == [2,15] # 3
 	@test ind2x(grid,4) == [5,15] # 4
 	@test ind2x(grid,5) == [2,12] # 5
 	@test ind2x(grid,6) == [5,12] # 6
-	
+
 	return interpolate(grid, [1,2,3,4,5,6], [6, 20]) == 2.0
 end
 @test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )

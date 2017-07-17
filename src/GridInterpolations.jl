@@ -3,9 +3,9 @@ module GridInterpolations
 
 export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
 
-abstract AbstractGrid
+abstract type AbstractGrid end
 
-type RectangleGrid <: AbstractGrid
+mutable struct RectangleGrid <: AbstractGrid
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
@@ -17,7 +17,7 @@ type RectangleGrid <: AbstractGrid
     function RectangleGrid(cutPoints...)
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
-        myCutPoints = Array(Vector{Float64}, length(cutPoints))
+        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
         for i = 1:length(cutPoints)
 			if length(Set(cutPoints[i])) != length(cutPoints[i])
 				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
@@ -40,7 +40,7 @@ type RectangleGrid <: AbstractGrid
     end
 end
 
-type SimplexGrid <: AbstractGrid
+mutable struct SimplexGrid <: AbstractGrid
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
@@ -54,7 +54,7 @@ type SimplexGrid <: AbstractGrid
     function SimplexGrid(cutPoints...)
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
-        myCutPoints = Array(Vector{Float64}, length(cutPoints))
+        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
         for i = 1:length(cutPoints)
 			if length(Set(cutPoints[i])) != length(cutPoints[i])
 				error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
@@ -99,13 +99,13 @@ end
 
 function ind2x(grid::AbstractGrid, ind::Int)
     ndims = dimensions(grid)
-    x = Array(Float64, ndims)
+    x = Array{Float64}(ndims)
     ind2x!(grid, ind, x)
     x::Array{Float64}
 end
 
 function ind2x!(grid::AbstractGrid, ind::Int, x::Array)
-    # Populates x with the value at ind. 
+    # Populates x with the value at ind.
 	# In-place version of ind2x.
 	# Example:
 	#   rgrid = RectangleGrid([2,5],[20,50])
@@ -331,7 +331,3 @@ lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=For
 end
 
 end # module
-
-
-
-

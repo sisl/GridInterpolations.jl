@@ -134,7 +134,7 @@ end
 
 function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::AbstractString="", eps::Float64=1e-10)
     if isempty(checkFileName)
-        checkFileName = joinpath(Pkg.dir("GridInterpolations"), "test", "simplexMagicTest20.txt")
+        checkFileName = joinpath(@__DIR__, "simplexMagicTest20.txt")
     end
 
     val = transpose([ [8.,1,6] [3,5,7] [4,9,2] ]) # transposed magic(3) from matlab
@@ -315,7 +315,7 @@ end
 
 
 
-include(joinpath(Pkg.dir("GridInterpolations"), "src", "interpBenchmarks.jl"))
+include(joinpath(@__DIR__, "..", "src", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
 
 println("All tests complete")

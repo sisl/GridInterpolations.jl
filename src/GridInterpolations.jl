@@ -317,15 +317,19 @@ function interpolants(grid::SimplexGrid, x::Vector)
     return index::Vector{Int}, weight::Vector{Float64}
 end
 
-# Returns a Vector of length num_vertices with the n-dimensional vertices in deterministic order
+# Returns a vector of length num_vertices with the n-dimensional vertices in deterministic order
 function vertices(grid::AbstractGrid)
 
     vertex_list = Vector{Vector{Float64}}(length(grid))
     n_dims::Int = dimensions(grid)
 
+    # Iterate over number of vertices in grid
     for idx = 1 : length(grid)
         vertex_list[idx] = zeros(n_dims)
         this_idx = idx-1
+
+        # Get the correct index into each dimension
+        # And populate vertex index with corresponding cut point
         for j = 1 : n_dims
             cut_idx = this_idx % grid.cut_counts[j]
             this_idx = div(this_idx,grid.cut_counts[j])

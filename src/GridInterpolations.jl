@@ -317,6 +317,26 @@ function interpolants(grid::SimplexGrid, x::Vector)
     return index::Vector{Int}, weight::Vector{Float64}
 end
 
+# Returns a Vector of length num_vertices with the n-dimensional vertices in deterministic order
+function vertices(grid::AbstractGrid)
+
+    vertex_list = fill!(Vector{Vector{Float64}}(length(grid)), zeros(dimensions(grid)));
+    n_dims::Int = dimensions(grid)
+
+    for idx = 1 : length(grid)
+        this_idx = idx-1
+
+        for j = 1 : n_dims
+            cut_idx = this_idx % grid.cuts[j]
+            this_idx = div(this_idx,grid.cuts[j])
+
+            vertex_list[idx][j] = cut_idx+1
+        end
+    end
+
+    return vertex_list
+end
+
 
 
 #################### sortperm! is included in Julia v0.4 ###################

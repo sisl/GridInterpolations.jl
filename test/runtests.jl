@@ -313,6 +313,22 @@ end
 @test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
 @test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
 
+# tests the order of vertices returned by vertices()
+# by comparing against ind2x for each unrolled index
+function test_vertices_ordering(grid)
+
+    grid_verts = vertices(grid)
+
+    @test length(grid_verts) == length(grid)
+
+    for i = 1 : length(grid)
+        @test grid_verts[i] == ind2x(grid,i)
+    end
+
+    return true
+end
+@test test_vertices_ordering( RectangleGrid([2,5], [12,15,18]) ) == true
+@test test_vertices_ordering( SimplexGrid([1,4,6,10], [8,12,17]) ) == true
 
 
 include(joinpath(@__DIR__, "..", "src", "interpBenchmarks.jl"))

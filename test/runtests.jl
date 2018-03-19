@@ -319,10 +319,10 @@ function test_vertices_ordering(grid)
 
     grid_verts = vertices(grid)
 
-    @test length(grid_verts) == length(grid)
+    @test length(grid_verts) == length(grid)*dimensions(grid)
 
     for i = 1 : length(grid)
-        @test grid_verts[i] == ind2x(grid,i)
+        @test grid_verts[i,:] == ind2x(grid,i)
     end
 
     return true

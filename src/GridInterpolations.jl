@@ -321,20 +321,19 @@ end
 # Returns a vector of length num_vertices with the n-dimensional vertices in deterministic order
 function vertices(grid::AbstractGrid)
 
-    vertex_list = Vector{Vector{Float64}}(length(grid))
+    vertex_list::Array{Float64,2} = Array{Float64,2}(length(grid),dimensions(grid))
     n_dims::Int = dimensions(grid)
 
     # Iterate over number of vertices in grid
     for idx = 1 : length(grid)
-        vertex_list[idx] = zeros(n_dims)
-        this_idx = idx-1
+        this_idx::Int = idx-1
 
         # Get the correct index into each dimension
         # And populate vertex index with corresponding cut point
         for j = 1 : n_dims
-            cut_idx = this_idx % grid.cut_counts[j]
+            cut_idx::Int = this_idx % grid.cut_counts[j]
             this_idx = div(this_idx,grid.cut_counts[j])
-            vertex_list[idx][j] = grid.cutPoints[j][cut_idx+1]
+            vertex_list[idx,j] = grid.cutPoints[j][cut_idx+1]
         end
     end
 

@@ -15,32 +15,35 @@ mutable struct RectangleGrid{D} <: AbstractGrid{D}
     weight::Vector{Float64}
     index2::Vector{Int}
     weight2::Vector{Float64}
+
+    function RectangleGrid{D}(cutPoints...) where D
+        cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+        cuts = vcat(cutPoints...)
+        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
+        numDims = length(cutPoints)
+        @assert numDims == D
+        for i = 1:numDims
+            if length(Set(cutPoints[i])) != length(cutPoints[i])
+                error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+            end
+            if !issorted(cutPoints[i])
+                error("Cut points must be sorted")
+            end
+            myCutPoints[i] = cutPoints[i]
+        end
+        index = zeros(Int, 2^numDims)
+        weight = zeros(Float64, 2^numDims)
+        index[1] = 1
+        weight[1] = 1.0
+        index2 = zeros(Int, 2^numDims)
+        weight2 = zeros(Float64, 2^numDims)
+        index2[1] = 1
+        weight2[1] = 1.0
+        return new(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
+    end
 end
 
-function RectangleGrid(cutPoints...)
-    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-    cuts = vcat(cutPoints...)
-    myCutPoints = Array{Vector{Float64}}(length(cutPoints))
-    numDims = length(cutPoints)
-    for i = 1:numDims
-		if length(Set(cutPoints[i])) != length(cutPoints[i])
-			error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
-		end
-		if !issorted(cutPoints[i])
-			error("Cut points must be sorted")
-		end
-        myCutPoints[i] = cutPoints[i]
-    end
-    index = zeros(Int, 2^numDims)
-    weight = zeros(Float64, 2^numDims)
-    index[1] = 1
-    weight[1] = 1.0
-    index2 = zeros(Int, 2^numDims)
-    weight2 = zeros(Float64, 2^numDims)
-    index2[1] = 1
-    weight2[1] = 1.0
-    RectangleGrid{numDims}(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
-end
+RectangleGrid(cutPoints...) = RectangleGrid{length(cutPoints)}(cutPoints...)
 
 mutable struct SimplexGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}
@@ -52,30 +55,33 @@ mutable struct SimplexGrid{D} <: AbstractGrid{D}
     ihi::Vector{Int} # indices of cuts above point
     ilo::Vector{Int} # indices of cuts below point
     n_ind::Vector{Int}
+
+    function SimplexGrid{D}(cutPoints...) where D
+        cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
+        cuts = vcat(cutPoints...)
+        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
+        numDims = length(cutPoints)
+        @assert numDims == D
+        for i = 1:numDims
+            if length(Set(cutPoints[i])) != length(cutPoints[i])
+                error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
+            end
+            if !issorted(cutPoints[i])
+                error("Cut points must be sorted")
+            end
+            myCutPoints[i] = cutPoints[i]
+        end
+        index = zeros(Int, numDims+1) # d+1 points for simplex
+        weight = zeros(Float64, numDims+1)
+        x_p = zeros(numDims) # residuals
+        ihi = zeros(Int, numDims) # indicies of cuts above point
+        ilo = zeros(Int, numDims) # indicies of cuts below point
+        n_ind = zeros(Int, numDims)
+        return new(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
+    end
 end
 
-function SimplexGrid(cutPoints...)
-    cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
-    cuts = vcat(cutPoints...)
-    myCutPoints = Array{Vector{Float64}}(length(cutPoints))
-    numDims = length(cutPoints)
-    for i = 1:numDims
-		if length(Set(cutPoints[i])) != length(cutPoints[i])
-			error(@sprintf("Duplicates cutpoints are not allowed (duplicates observed in dimension %d)",i))
-		end
-		if !issorted(cutPoints[i])
-			error("Cut points must be sorted")
-		end
-        myCutPoints[i] = cutPoints[i]
-    end
-    index = zeros(Int, numDims+1) # d+1 points for simplex
-    weight = zeros(Float64, numDims+1)
-    x_p = zeros(numDims) # residuals
-    ihi = zeros(Int, numDims) # indicies of cuts above point
-    ilo = zeros(Int, numDims) # indicies of cuts below point
-    n_ind = zeros(Int, numDims)
-    SimplexGrid{numDims}(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
-end
+SimplexGrid(cutPoints...) = SimplexGrid{length(cutPoints)}(cutPoints...)
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
 Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
@@ -89,13 +95,9 @@ label(grid::SimplexGrid) = "simplex interpolation grid"
 Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
 Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
 
-# internal use only
-_gridtype(::RectangleGrid) = "RectangleGrid"
-_gridtype(::SimplexGrid) = "SimplexGrid"
-
 # showall returns a valid constructor incantation - it will be called when repr is called on a grid
 function Base.showall(io::IO, grid::AbstractGrid)
-    print(io, "$(_gridtype(grid))(")
+    print(io, "$(typeof(grid))(")
     for v in grid.cutPoints
         show(io, v)
         print(io, ',')

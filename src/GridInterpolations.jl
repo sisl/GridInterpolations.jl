@@ -2,7 +2,7 @@ __precompile__()
 module GridInterpolations
 
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants
+export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
 
 abstract type AbstractGrid end
 
@@ -316,6 +316,29 @@ function interpolants(grid::SimplexGrid, x::Vector)
     weight = weight ./ sum(weight)
 
     return index::Vector{Int}, weight::Vector{Float64}
+end
+
+# Returns a matrix of size (num_vertices x grid_dimension)
+# where the ith row represents the vertex corresponding to the ith index of grid data 
+function vertices(grid::AbstractGrid)
+
+    vertex_list::Array{Float64,2} = Array{Float64,2}(length(grid),dimensions(grid))
+    n_dims::Int = dimensions(grid)
+
+    # Iterate over the number of vertices in a grid
+    for idx = 1 : length(grid)
+        this_idx::Int = idx-1
+
+        # Get the correct index into each dimension
+        # and populate vertex index with corresponding cut point
+        for j = 1 : n_dims
+            cut_idx::Int = this_idx % grid.cut_counts[j]
+            this_idx = div(this_idx,grid.cut_counts[j])
+            vertex_list[idx,j] = grid.cutPoints[j][cut_idx+1]
+        end
+    end
+
+    return vertex_list
 end
 
 

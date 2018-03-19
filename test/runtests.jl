@@ -150,7 +150,7 @@ function simplexMagic(NDISC::Int=20, NPOINTS::Int=3, checkFileName::AbstractStri
 
     sInterpValTest = readdlm(checkFileName)
 
-    testErr = sum(abs(sInterpVal-sInterpValTest))
+    testErr = sum(abs, sInterpVal-sInterpValTest)
 
     if (testErr > eps)
         display("Failed Simplex Comparison Test")
@@ -317,12 +317,12 @@ end
 # by comparing against ind2x for each unrolled index
 function test_vertices_ordering(grid)
 
-    grid_verts = vertices(grid)
+    grid_verts = @inferred vertices(grid)
 
-    @test length(grid_verts) == length(grid)*dimensions(grid)
+    @test length(grid_verts) == length(grid)
 
     for i = 1 : length(grid)
-        @test grid_verts[i,:] == ind2x(grid,i)
+        @test grid_verts[i] == ind2x(grid,i)
     end
 
     return true

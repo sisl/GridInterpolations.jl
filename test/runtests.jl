@@ -1,5 +1,8 @@
 using GridInterpolations
-using Base.Test
+using Test
+using LinearAlgebra
+using Random
+using DelimitedFiles
 
 # use import otherwise Interpolations.interpolate conflicts with GridInterpolations.interpolate
 import Interpolations: BSpline, Linear, OnGrid, Flat
@@ -21,7 +24,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
     gridM = RectangleGrid(tuple(cutPoints...)...) 				# Mykel's interpolation package
 
     # Package the data in a way that can be read by the interpolation package:
-    dataM = Array{Float64}(length(gridM))
+    dataM = Array{Float64}(undef, length(gridM))
     for i=1:length(gridM)
         # x = ind2x(gridM, i)
         x = ind2x(gridM, i)
@@ -36,7 +39,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         testPoint = zeros(numDims)
         for i=1:numRandomTests
             rand!(testPoint)
-            testI = gridI[((pointsPerDim-1)*testPoint+1)...]
+            testI = gridI[((pointsPerDim.-1)*testPoint.+1)...]
             testM = GridInterpolations.interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
@@ -75,8 +78,8 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
 
     if testType==:extrapPos
         for i=1:numRandomTests
-            testPoint = rand(numDims)+1
-            testI = gridI[((pointsPerDim-1)*testPoint+1)...]
+            testPoint = rand(numDims).+1
+            testI = gridI[((pointsPerDim-1)*testPoint.+1)...]
             testM = interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
@@ -99,7 +102,7 @@ end
 function getFractionalIndexes(g::AbstractGrid, s::Array)
     # Returns the fractional index of sprime within the grid-defined discretization.
 
-    fracInd = Array{Int64}(length(g.cutPoints))
+    fracInd = Array{Int64}(undef, length(g.cutPoints))
 
     for i=1:length(g.cutPoints)
         gridDisc = g.cutPoints[i]
@@ -120,7 +123,7 @@ function getFracIndex(vararray::Array, value::Float64)
     end
 
     if value >= vararray[end]
-        return indmax(vararray)
+        return argmax(vararray)
     end
 
     i=1
@@ -164,7 +167,7 @@ end
 # constructs a new grid from repr output and tests to see if it's the same
 function reprConstruct()
     g1 = SimplexGrid([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
-    g2 = eval(parse(repr(g1)))
+    g2 = eval(Meta.parse(repr(g1)))
     return g1.cutPoints == g2.cutPoints
 end
 
@@ -216,6 +219,7 @@ end
 
 @test simplexMagic() == true
 
+# TODO
 @test reprConstruct() == true
 
 @test checkCounters() == true
@@ -277,15 +281,15 @@ function test_simplex_implemented()
 	@test x == [5,5]
 
 	indices, weights = interpolants(grid, [1,1])
-	full_weight_indices = find(x -> x == 1, weights)
+	full_weight_indices = findall(x -> x == 1, weights)
 	@test  length(full_weight_indices) == 1
 	@test  weights[full_weight_indices[1]] == 1.0
 
 	indices, weights = interpolants(grid, [1.5,3])
-	full_weight_indices = find(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
+	full_weight_indices = findall(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
 	@test  length(full_weight_indices) == 1
 	@test  isapprox(weights[full_weight_indices[1]], 0.666667, rtol=1e-5) == true
-	full_weight_indices = find(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
+	full_weight_indices = findall(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
 	@test  length(full_weight_indices) == 1
 	@test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
 

@@ -1,7 +1,8 @@
-__precompile__()
 module GridInterpolations
 
 using StaticArrays
+using Printf
+using LinearAlgebra
 
 export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
 
@@ -19,7 +20,7 @@ mutable struct RectangleGrid{D} <: AbstractGrid{D}
     function RectangleGrid{D}(cutPoints...) where D
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
-        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
+        myCutPoints = Array{Vector{Float64}}(undef, length(cutPoints))
         numDims = length(cutPoints)
         @assert numDims == D
         for i = 1:numDims
@@ -59,7 +60,7 @@ mutable struct SimplexGrid{D} <: AbstractGrid{D}
     function SimplexGrid{D}(cutPoints...) where D
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
-        myCutPoints = Array{Vector{Float64}}(length(cutPoints))
+        myCutPoints = Array{Vector{Float64}}(undef, length(cutPoints))
         numDims = length(cutPoints)
         @assert numDims == D
         for i = 1:numDims
@@ -92,22 +93,23 @@ Base.ndims(grid::AbstractGrid{D}) where D = D
 label(grid::RectangleGrid) = "multilinear interpolation grid"
 label(grid::SimplexGrid) = "simplex interpolation grid"
 
-Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
-Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
-
 # showall returns a valid constructor incantation - it will be called when repr is called on a grid
-function Base.showall(io::IO, grid::AbstractGrid)
-    print(io, "$(typeof(grid))(")
-    for v in grid.cutPoints
-        show(io, v)
-        print(io, ',')
+function Base.show(io::IO, grid::AbstractGrid)
+    if get(io, :compact, false)
+        print(io, "$(typeof(grid)) with $(length(grid)) points")
+    else
+        print(io, "$(typeof(grid))(")
+        for v in grid.cutPoints
+            show(io, v)
+            print(io, ',')
+        end
+        print(io, ')')
     end
-    print(io, ')')
 end
 
 function ind2x(grid::AbstractGrid, ind::Int)
     ndims = dimensions(grid)
-    x = Array{Float64}(ndims)
+    x = Array{Float64}(undef, ndims)
     ind2x!(grid, ind, x)
     x::Array{Float64}
 end
@@ -207,12 +209,12 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
                 grid.index2[i  ] = grid.index[i] + (i_lo-cut_i)*subblock_size
                 grid.index2[i+l] = grid.index[i] + (i_hi-cut_i)*subblock_size
             end
-            copy!(grid.index,grid.index2)
+            copyto!(grid.index,grid.index2)
             for i = 1:l
                 grid.weight2[i  ] = grid.weight[i]*low
                 grid.weight2[i+l] = grid.weight[i]*(1-low)
             end
-            copy!(grid.weight,grid.weight2)
+            copyto!(grid.weight,grid.weight2)
             l = l*2
             n = n*2
         end
@@ -283,7 +285,7 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
     # sort translated and scaled x values
     sortperm!(n_ind, x_p, rev=true) ############################################# killer of speed
     x_p = x_p[n_ind]
-    n_ind = n_ind - 1
+    n_ind = n_ind .- 1
 
     # get weight
     for i = 1:(length(x_p)+1)
@@ -328,7 +330,7 @@ end
 "Return a vector of SVectors where the ith vector represents the vertex corresponding to the ith index of grid data."
 function vertices(grid::AbstractGrid)
     n_dims = dimensions(grid)
-    mem = Array{Float64,2}(n_dims, length(grid))
+    mem = Array{Float64,2}(undef, n_dims, length(grid))
 
     for idx = 1 : length(grid)
         this_idx::Int = idx-1
@@ -348,7 +350,7 @@ function vertices(grid::AbstractGrid)
     (http://juliaarrays.github.io/StaticArrays.jl/stable/pages/
     api.html#Arrays-of-static-arrays-1), and tests should catch these errors.
     =#
-    return reinterpret(SVector{n_dims, Float64}, mem, (length(grid),))
+    return reshape(reinterpret(SVector{n_dims, Float64}, mem), (length(grid),))
 end
 
 
@@ -359,8 +361,8 @@ using Base.Order # for sortperm!, should be availiable in v 0.4
 using Base.Sort # for sortperm!
 const DEFAULT_UNSTABLE = QuickSort
 
-function sortperm!{I<:Integer}(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTABLE,
-lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward)
+function sortperm!(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTABLE,
+                   lt::Function=isless, by::Function=identity, rev::Bool=false, order::Ordering=Forward) where {I<:Integer}
     sort!(x, alg, Perm(ord(lt,by,rev,order),v))
 end
 

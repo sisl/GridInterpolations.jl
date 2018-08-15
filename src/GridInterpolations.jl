@@ -93,17 +93,18 @@ Base.ndims(grid::AbstractGrid{D}) where D = D
 label(grid::RectangleGrid) = "multilinear interpolation grid"
 label(grid::SimplexGrid) = "simplex interpolation grid"
 
-Base.showcompact(io::IO, grid::AbstractGrid) = print(io, "$(typeof(grid)) with $(length(grid)) points")
-Base.show(io::IO, grid::AbstractGrid) = Base.showcompact(io, grid)
-
 # showall returns a valid constructor incantation - it will be called when repr is called on a grid
-function Base.showall(io::IO, grid::AbstractGrid)
-    print(io, "$(typeof(grid))(")
-    for v in grid.cutPoints
-        show(io, v)
-        print(io, ',')
+function Base.show(io::IO, grid::AbstractGrid)
+    if get(io, :compact, false)
+        print(io, "$(typeof(grid)) with $(length(grid)) points")
+    else
+        print(io, "$(typeof(grid))(")
+        for v in grid.cutPoints
+            show(io, v)
+            print(io, ',')
+        end
+        print(io, ')')
     end
-    print(io, ')')
 end
 
 function ind2x(grid::AbstractGrid, ind::Int)

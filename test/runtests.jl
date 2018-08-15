@@ -220,7 +220,7 @@ end
 @test simplexMagic() == true
 
 # TODO
-# @test reprConstruct() == true
+@test reprConstruct() == true
 
 @test checkCounters() == true
 

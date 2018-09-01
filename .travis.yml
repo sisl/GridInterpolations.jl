@@ -7,8 +7,5 @@ julia:
   - nightly
 notifications:
   email: false
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --project --check-bounds=yes -e 'import Pkg; Pkg.build(); Pkg.test("GridInterpolations"; coverage=true)'
 after_success:
-  - julia --project -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'

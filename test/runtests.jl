@@ -353,6 +353,11 @@ end
     @test test_vertices_ordering( SimplexGrid([1,4,6,10], [8,12,17]) ) == true
 end
 
+@testset "NaN" begin
+    r = GridInterpolations.RectangleGrid(1:4, 1:4)
+    @test_throws DomainError interpolants(r, [2.5, NaN])
+end
+
 
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)

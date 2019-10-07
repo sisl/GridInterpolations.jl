@@ -17,11 +17,11 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
     gridData = rand(cutsDim...)
 
     # Set up the data structures:
-    gridI = Interpolations.interpolate(gridData, BSpline(Linear()), OnGrid())  		# This is for the Interpolations package
+    gridI = Interpolations.interpolate(gridData, BSpline(Linear()))      # This is for the Interpolations package
     gridI = Interpolations.extrapolate(gridI, Flat())
     cutPointMat = 0:(1/(pointsPerDim-1)):1
     cutPoints = [cutPointMat for i=1:numDims]
-    gridM = RectangleGrid(tuple(cutPoints...)...) 				# Mykel's interpolation package
+    gridM = RectangleGrid(tuple(cutPoints...)...)         # Mykel's interpolation package
 
     # Package the data in a way that can be read by the interpolation package:
     dataM = Array{Float64}(undef, length(gridM))
@@ -39,7 +39,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         testPoint = zeros(numDims)
         for i=1:numRandomTests
             rand!(testPoint)
-            testI = gridI[((pointsPerDim.-1)*testPoint.+1)...]
+            testI = gridI(((pointsPerDim.-1)*testPoint.+1)...)
             testM = GridInterpolations.interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
@@ -60,7 +60,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
         testPoint = zeros(numDims)
         for i=1:numRandomTests
             testPoint = -rand!(testPoint)
-            testI = gridI[((pointsPerDim-1)*testPoint+1)...]
+            testI = gridI(((pointsPerDim-1)*testPoint+1)...)
             testM = interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
@@ -79,7 +79,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
     if testType==:extrapPos
         for i=1:numRandomTests
             testPoint = rand(numDims).+1
-            testI = gridI[((pointsPerDim-1)*testPoint.+1)...]
+            testI = gridI(((pointsPerDim-1)*testPoint.+1)...)
             testM = interpolate(gridM,dataM,testPoint)
 
             if (abs(testI-testM)>eps)
@@ -192,8 +192,8 @@ function checkCounters()
     temp = interpolate(grid, data, [-1.5,1.5])
     temp = interpolate(grid, data, [1.,1.])
     temp = interpolate(grid, data, [1.5,1.5])
-#    showcompact(grid)
-#    show(grid)
+    #    showcompact(grid)
+    #    show(grid)
     return true
 end
 
@@ -213,109 +213,123 @@ function testMask()
 end
 
 
-@test compareToGrid(:random) == true
-@test compareToGrid(:extrapPos) == true
-#@test compareToGrid(:extrapNeg)==true
+@testset "Comparisons" begin
+    @test compareToGrid(:random) == true
+    @test compareToGrid(:extrapPos) == true
+    #@test compareToGrid(:extrapNeg)==true
+end
 
-@test simplexMagic() == true
+@testset "Magic" begin
+    @test simplexMagic() == true
+end
 
 # TODO
-@test reprConstruct() == true
+@testset "Repr" begin
+    @test reprConstruct() == true
+end
 
-@test checkCounters() == true
+@testset "Counter" begin
+    @test checkCounters() == true
+end
 
-@test testMask() == true
+@testset "Mask" begin
+    @test testMask() == true
+end
 
 
-# Check that duplicates are disallowed
-@test_throws ErrorException RectangleGrid([1,1])
-@test_throws ErrorException SimplexGrid([1,1])
+@testset "Duplicates" begin
+    # Check that duplicates are disallowed
+    @test_throws ErrorException RectangleGrid([1,1])
+    @test_throws ErrorException SimplexGrid([1,1])
+end
 
 
 # Sanity check overall implementations
 function test_rect_implemented()
     rgrid = RectangleGrid([2,5],[2,5])
 
-	@test length(rgrid) == 4
-	@test GridInterpolations.dimensions(rgrid) == 2
+    @test length(rgrid) == 4
+    @test GridInterpolations.dimensions(rgrid) == 2
 
-	@test ind2x(rgrid,1) == [2,2]
-	@test ind2x(rgrid,2) == [5,2]
-	@test ind2x(rgrid,3) == [2,5]
-	@test ind2x(rgrid,4) == [5,5]
-	x = [0,0]
-	ind2x!(rgrid, 4, x)
-	@test x == [5,5]
+    @test ind2x(rgrid,1) == [2,2]
+    @test ind2x(rgrid,2) == [5,2]
+    @test ind2x(rgrid,3) == [2,5]
+    @test ind2x(rgrid,4) == [5,5]
+    x = [0,0]
+    ind2x!(rgrid, 4, x)
+    @test x == [5,5]
 
-	@test interpolants(rgrid, [1,1]) == ([1],[1.0])
-	@test interpolants(rgrid, [2,5]) == ([3],[1.0])
+    @test interpolants(rgrid, [1,1]) == ([1],[1.0])
+    @test interpolants(rgrid, [2,5]) == ([3],[1.0])
 
-	indices, weights = interpolants(rgrid, [1.5,3])
-	@test indices == [1,3]
-	@test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
+    indices, weights = interpolants(rgrid, [1.5,3])
+    @test indices == [1,3]
+    @test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
 
-	@test interpolate(rgrid, [1,2,3,4], [1,1]) == 1.0
-	@test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
-	@test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+    @test interpolate(rgrid, [1,2,3,4], [1,1]) == 1.0
+    @test maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+    @test isnan(maskedInterpolate(rgrid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
 
-	@test isapprox(interpolate(rgrid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
-	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
-	@test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+    @test isapprox(interpolate(rgrid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
+    @test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+    @test maskedInterpolate(rgrid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
 end
-test_rect_implemented()
 
+@testset "Rect Impl" begin
+    test_rect_implemented()
+end
 
 # Sanity check overall implementations
 function test_simplex_implemented()
     grid = SimplexGrid([2,5],[2,5])
 
-	@test length(grid) == 4
-	@test GridInterpolations.dimensions(grid) == 2
+    @test length(grid) == 4
+    @test GridInterpolations.dimensions(grid) == 2
 
-	@test ind2x(grid,1) == [2,2]
-	@test ind2x(grid,2) == [5,2]
-	@test ind2x(grid,3) == [2,5]
-	@test ind2x(grid,4) == [5,5]
-	x = [0,0]
-	ind2x!(grid, 4, x)
-	@test x == [5,5]
+    @test ind2x(grid,1) == [2,2]
+    @test ind2x(grid,2) == [5,2]
+    @test ind2x(grid,3) == [2,5]
+    @test ind2x(grid,4) == [5,5]
+    x = [0,0]
+    ind2x!(grid, 4, x)
+    @test x == [5,5]
 
-	indices, weights = interpolants(grid, [1,1])
-	full_weight_indices = findall(x -> x == 1, weights)
-	@test  length(full_weight_indices) == 1
-	@test  weights[full_weight_indices[1]] == 1.0
+    indices, weights = interpolants(grid, [1,1])
+    full_weight_indices = findall(x -> x == 1, weights)
+    @test  length(full_weight_indices) == 1
+    @test  weights[full_weight_indices[1]] == 1.0
 
-	indices, weights = interpolants(grid, [1.5,3])
-	full_weight_indices = findall(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
-	@test  length(full_weight_indices) == 1
-	@test  isapprox(weights[full_weight_indices[1]], 0.666667, rtol=1e-5) == true
-	full_weight_indices = findall(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
-	@test  length(full_weight_indices) == 1
-	@test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
+    indices, weights = interpolants(grid, [1.5,3])
+    full_weight_indices = findall(x -> isapprox(x, 0.666667, rtol=1e-5), weights)
+    @test  length(full_weight_indices) == 1
+    @test  isapprox(weights[full_weight_indices[1]], 0.666667, rtol=1e-5) == true
+    full_weight_indices = findall(x -> isapprox(x, 0.333333, rtol=1e-5), weights)
+    @test  length(full_weight_indices) == 1
+    @test  isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5)  == true
 
-	@test interpolate(grid, [1,2,3,4], [1,1]) == 1.0
-	@test maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
-	@test isnan(maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
+    @test interpolate(grid, [1,2,3,4], [1,1]) == 1.0
+    @test maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([false, false, false, false])) == 1.0
+    @test isnan(maskedInterpolate(grid, [1,2,3,4], [1,1], BitArray([true, false, false, false])))
 
-	@test isapprox(interpolate(grid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
-	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
-	@test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
+    @test isapprox(interpolate(grid, [1,2,3,4], [1.5,3]), 1.66666666, rtol=1e-5)
+    @test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([true, false, false, false])) == 3
+    @test maskedInterpolate(grid, [1,2,3,4], [1.5,3], BitArray([false, false, true, false])) == 1
 end
-test_simplex_implemented()
+@testset "Simplex Impl" begin
+    test_simplex_implemented()
+end
 
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions
 function test_ordering(grid)
-	@test ind2x(grid,1) == [2,18] # 1
-	@test ind2x(grid,2) == [5,18] # 2
-	@test ind2x(grid,3) == [2,15] # 3
-	@test ind2x(grid,4) == [5,15] # 4
-	@test ind2x(grid,5) == [2,12] # 5
-	@test ind2x(grid,6) == [5,12] # 6
+    @test ind2x(grid,1) == [2,18] # 1
+    @test ind2x(grid,2) == [5,18] # 2
+    @test ind2x(grid,3) == [2,15] # 3
+    @test ind2x(grid,4) == [5,15] # 4
+    @test ind2x(grid,5) == [2,12] # 5
+    @test ind2x(grid,6) == [5,12] # 6
 
-	return interpolate(grid, [1,2,3,4,5,6], [6, 20]) == 2.0
+    return interpolate(grid, [1,2,3,4,5,6], [6, 20]) == 2.0
 end
-@test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
-@test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
 
 # tests the order of vertices returned by vertices()
 # by comparing against ind2x for each unrolled index
@@ -331,11 +345,22 @@ function test_vertices_ordering(grid)
 
     return true
 end
-@test test_vertices_ordering( RectangleGrid([2,5], [12,15,18]) ) == true
-@test test_vertices_ordering( SimplexGrid([1,4,6,10], [8,12,17]) ) == true
+@testset "Ordering" begin
+    @test_throws ErrorException test_ordering( RectangleGrid([2,5], [18,15,12]) )
+    @test_throws ErrorException test_ordering( SimplexGrid([2,5], [18,15,12]) )
+
+    @test test_vertices_ordering( RectangleGrid([2,5], [12,15,18]) ) == true
+    @test test_vertices_ordering( SimplexGrid([1,4,6,10], [8,12,17]) ) == true
+end
+
+@testset "NaN" begin
+    r = GridInterpolations.RectangleGrid(1:4, 1:4)
+    @test_throws DomainError interpolants(r, [2.5, NaN])
+end
 
 
-include(joinpath(@__DIR__, "..", "src", "interpBenchmarks.jl"))
+include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
+
 
 println("All tests complete")

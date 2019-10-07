@@ -334,6 +334,14 @@ end
 @test test_vertices_ordering( RectangleGrid([2,5], [12,15,18]) ) == true
 @test test_vertices_ordering( SimplexGrid([1,4,6,10], [8,12,17]) ) == true
 
+@testset "grid_iterator" begin
+    g = GridInterpolations.RectangleGrid(1:3,4:5)
+    pts = ([1.,4.],[2.,4.],[3.,4.],[1.,5.],[2.,5.],[3.,5.])
+    @test length(g) == length(pts)
+    @test all(pts .== [x for x in g])
+    @test iterate(g,7) === nothing
+end
+
 
 include(joinpath(@__DIR__, "..", "src", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)

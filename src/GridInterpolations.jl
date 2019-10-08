@@ -374,5 +374,6 @@ function Base.iterate(iter::RectangleGrid, state::Int64=1)
 end
 
 Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[key])
+Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
 
 end # module

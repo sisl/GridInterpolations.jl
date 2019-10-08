@@ -88,6 +88,13 @@ julia> [grid[c] for c in CartesianIndices((3,3))]
  [0.5, 0.0]  [0.5, 0.5]  [0.5, 1.0]
  [1.0, 0.0]  [1.0, 0.5]  [1.0, 1.0]
 ```
+or multi-dimensional indices
+```julia
+julia> grid[2,2]
+2-element Array{Float64,1}:
+ 0.5
+ 0.5
+```
 
 Sequential iteration over grid points:
 ```julia

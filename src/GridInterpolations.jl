@@ -369,4 +369,11 @@ function sortperm!(x::Vector{I}, v::AbstractVector; alg::Algorithm=DEFAULT_UNSTA
     sort!(x, alg, Perm(ord(lt,by,rev,order),v))
 end
 
+function Base.iterate(iter::RectangleGrid, state::Int64=1)
+    return state<=length(iter) ? (ind2x(iter, state), state+1) : nothing
+end
+
+Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[key])
+Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
+
 end # module

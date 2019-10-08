@@ -80,6 +80,29 @@ julia> dimensions(grid)
 2
 ```
 
+Multi-dimensional indexing using Cartesian coordinates:
+```julia
+julia> [grid[c] for c in CartesianIndices((3,3))]
+3×3 Array{Array{Float64,1},2}:
+ [0.0, 0.0]  [0.0, 0.5]  [0.0, 1.0]
+ [0.5, 0.0]  [0.5, 0.5]  [0.5, 1.0]
+ [1.0, 0.0]  [1.0, 0.5]  [1.0, 1.0]
+```
+or multi-dimensional indices
+```julia
+julia> grid[2,2]
+2-element Array{Float64,1}:
+ 0.5
+ 0.5
+```
+
+Sequential iteration over grid points:
+```julia
+julia> for x in grid
+           # do stuff
+       end
+```
+
 ## Credits
 
 Contributors to this package include Maxim Egorov, Eric Mueller, and Mykel Kochenderfer.

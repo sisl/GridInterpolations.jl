@@ -358,6 +358,45 @@ end
     @test_throws DomainError interpolants(r, [2.5, NaN])
 end
 
+@testset "Iteration and Indexing" begin
+    @testset "2d" begin
+        g2 = GridInterpolations.RectangleGrid(1:3,4:5)
+        pts = ([1.,4.],[2.,4.],[3.,4.],[1.,5.],[2.,5.],[3.,5.])
+        @test length(g2) == length(pts)
+        @test all(pts .== [x for x in g2])
+        @test iterate(g2,7) === nothing
+        @test all(pts .== [g2[ci] for ci in reshape(CartesianIndices((3,2)), length(g2))])
+        @test all(pts .== reshape([g2[i,j] for i=1:3, j=1:2], length(g2)))
+        @test_throws BoundsError g2[CartesianIndex(0,0)]
+        @test_throws BoundsError g2[CartesianIndex(4,2)]
+        @test_throws BoundsError g2[CartesianIndex(3,3)]
+        @test_throws BoundsError g2[0,0]
+        @test_throws BoundsError g2[4,2]
+        @test_throws BoundsError g2[3,3]
+        @test_throws BoundsError g2[1,1,2]
+    end
+    @testset "3d" begin
+        g3 = GridInterpolations.RectangleGrid(1:3,4:5,6:10)
+        pts = reshape([[x,y,z] for x=1.:3., y=4.:5., z=6.:10.], length(g3))
+        @test length(g3) == length(pts)
+        @test all(pts .== [x for x in g3])
+        @test iterate(g3,31) === nothing
+        @test all(pts .== [g3[ci] for ci in reshape(CartesianIndices((3,2,5)), length(g3))])
+        @test all(pts .== reshape([g3[i,j,k] for i=1:3, j=1:2, k=1:5], length(g3)))
+        @test_throws BoundsError g3[CartesianIndex(0,0,0)] 
+        @test_throws BoundsError g3[CartesianIndex(4,2,5)] 
+        @test_throws BoundsError g3[CartesianIndex(3,3,5)] 
+        @test_throws BoundsError g3[CartesianIndex(3,2,6)] 
+        @test_throws BoundsError g3[0,0,0] 
+        @test_throws BoundsError g3[4,2,5] 
+        @test_throws BoundsError g3[3,3,5] 
+        @test_throws BoundsError g3[3,2,6] 
+        if VERSION.major > 0  # this test is known to fail for julia v0.7
+            @test_throws BoundsError g3[1,1]
+        end
+        @test_throws BoundsError g3[1,1,1,2]
+    end
+end
 
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)

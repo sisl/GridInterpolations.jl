@@ -358,14 +358,31 @@ end
     @test_throws DomainError interpolants(r, [2.5, NaN])
 end
 
-@testset "grid_iterator" begin
-    g = GridInterpolations.RectangleGrid(1:3,4:5)
-    pts = ([1.,4.],[2.,4.],[3.,4.],[1.,5.],[2.,5.],[3.,5.])
-    @test length(g) == length(pts)
-    @test all(pts .== [x for x in g])
-    @test iterate(g,7) === nothing
+@testset "Iteration and Indexing" begin
+    @testset "2d" begin
+        g = GridInterpolations.RectangleGrid(1:3,4:5)
+        pts = ([1.,4.],[2.,4.],[3.,4.],[1.,5.],[2.,5.],[3.,5.])
+        @test length(g) == length(pts)
+        @test all(pts .== [x for x in g])
+        @test iterate(g,7) === nothing
+        @test all(pts .== [g[ci] for ci in reshape(CartesianIndices((3,2)), length(g))])
+        @test_throws BoundsError g[CartesianIndex(0,0)]
+        @test_throws BoundsError g[CartesianIndex(4,2)]
+        @test_throws BoundsError g[CartesianIndex(3,3)]
+    end
+    @testset "3d" begin
+        g = GridInterpolations.RectangleGrid(1:3,4:5,6:10)
+        pts = reshape([[x,y,z] for x in 1.:3., y in 4.:5., z in 6.:10.], length(g))
+        @test length(g) == length(pts)
+        @test all(pts .== [x for x in g])
+        @test iterate(g,31) === nothing
+        @test all(pts .== [g[ci] for ci in reshape(CartesianIndices((3,2,5)), length(g))])
+        @test_throws BoundsError g[CartesianIndex(0,0,0)] 
+        @test_throws BoundsError g[CartesianIndex(4,2,5)] 
+        @test_throws BoundsError g[CartesianIndex(3,3,5)] 
+        @test_throws BoundsError g[CartesianIndex(3,2,6)] 
+    end
 end
-
 
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)

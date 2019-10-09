@@ -162,7 +162,7 @@ function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
 end
 
 function interpolants(grid::RectangleGrid, x::AbstractVector)
-    if any(isnan.(x))
+    if any(map(isnan, x))
         throw(DomainError("Input contains NaN!"))
     end
     cut_counts = grid.cut_counts

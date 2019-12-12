@@ -85,6 +85,7 @@ end
 SimplexGrid(cutPoints...) = SimplexGrid{length(cutPoints)}(cutPoints...)
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
+Base.size(grid::RectangleGrid) = Tuple(grid.cut_counts)
 Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
 
 dimensions(grid::AbstractGrid{D}) where D = D

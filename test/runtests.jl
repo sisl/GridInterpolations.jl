@@ -249,6 +249,7 @@ function test_rect_implemented()
     rgrid = RectangleGrid([2,5],[2,5])
 
     @test length(rgrid) == 4
+    @test size(rgrid) == (2,2)
     @test GridInterpolations.dimensions(rgrid) == 2
 
     @test ind2x(rgrid,1) == [2,2]
@@ -363,6 +364,7 @@ end
         g2 = GridInterpolations.RectangleGrid(1:3,4:5)
         pts = ([1.,4.],[2.,4.],[3.,4.],[1.,5.],[2.,5.],[3.,5.])
         @test length(g2) == length(pts)
+        @test size(g2) == (3,2)
         @test all(pts .== [x for x in g2])
         @test iterate(g2,7) === nothing
         @test all(pts .== [g2[ci] for ci in reshape(CartesianIndices((3,2)), length(g2))])
@@ -379,6 +381,7 @@ end
         g3 = GridInterpolations.RectangleGrid(1:3,4:5,6:10)
         pts = reshape([[x,y,z] for x=1.:3., y=4.:5., z=6.:10.], length(g3))
         @test length(g3) == length(pts)
+        @test size(g3) == (3,2,5)
         @test all(pts .== [x for x in g3])
         @test iterate(g3,31) === nothing
         @test all(pts .== [g3[ci] for ci in reshape(CartesianIndices((3,2,5)), length(g3))])

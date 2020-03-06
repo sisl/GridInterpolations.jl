@@ -109,10 +109,9 @@ function Base.show(io::IO, grid::AbstractGrid)
 end
 
 function ind2x(grid::AbstractGrid{D}, ind::Int) where D
-    ndims = dimensions(grid)
     x::MVector{D, Float64} = @MVector zeros(D)
     ind2x!(grid, ind, x)
-    x::MVector{D, Float64}
+    return x
 end
 
 function ind2x!(grid::AbstractGrid, ind::Int, x::AbstractArray)

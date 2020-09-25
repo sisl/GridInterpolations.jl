@@ -1,4 +1,5 @@
 language: julia
+coveralls: true
 os:
   - linux
   - osx
@@ -6,8 +7,7 @@ os:
 julia:
   - 0.7
   - 1.0
-  - 1.2
+  - 1
 notifications:
   email: false
-after_success:
-  - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'
+  

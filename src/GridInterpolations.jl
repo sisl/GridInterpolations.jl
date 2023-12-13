@@ -159,11 +159,11 @@ interpolate(grid::AbstractGrid, data::Matrix, x::AbstractVector) = interpolate(g
 
 function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
     index, weight = interpolants(grid, x)
-	v = 0.0
-	for (i,data_ind) in enumerate(index)
-		v += data[data_ind]*weight[i]
-	end
-	return v
+    v = 0.0
+    for (i,data_ind) in enumerate(index)
+        v += data[data_ind]*weight[i]
+    end
+    return v
 end
 
 function interpolants(grid::RectangleGrid, x::AbstractVector)
@@ -230,8 +230,8 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
         subblock_size = subblock_size*(cut_counts[d])
     end
 
-	v = min(l,length(grid.index))
-	return view(grid.index,1:v),view(grid.weight,1:v)
+    v = min(l,length(grid.index))
+    return view(grid.index,1:v),view(grid.weight,1:v)
 end
 
 function interpolants(grid::SimplexGrid, x::AbstractVector)

@@ -161,7 +161,11 @@ interpolate(grid::AbstractGrid, data::Matrix, x::AbstractVector) = interpolate(g
 
 function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
     index, weight = interpolants(grid, x)
-    dot(data[index], weight)
+    v = 0.0
+    for (i,data_ind) in enumerate(index)
+        v += data[data_ind]*weight[i]
+    end
+    return v
 end
 
 function interpolants(grid::RectangleGrid, x::AbstractVector)
@@ -228,11 +232,8 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
         subblock_size = subblock_size*(cut_counts[d])
     end
 
-    if l<length(grid.index)
-        # This is true if we don't need to interpolate all dimensions because we're on a boundary:
-        return grid.index[1:l], grid.weight[1:l]
-    end
-    return grid.index, grid.weight
+    v = min(l,length(grid.index))
+    return view(grid.index,1:v),view(grid.weight,1:v)
 end
 
 function interpolants(grid::SimplexGrid, x::AbstractVector)
@@ -352,7 +353,7 @@ function vertices(grid::AbstractGrid)
 
     #=
     This relies on the memory layout of Matrix to stay the same, so is a
-    possible source of future errors. However, it is documented 
+    possible source of future errors. However, it is documented
     (http://juliaarrays.github.io/StaticArrays.jl/stable/pages/
     api.html#Arrays-of-static-arrays-1), and tests should catch these errors.
     =#

@@ -84,6 +84,7 @@ mutable struct SimplexGrid{D,T} <: AbstractGrid{D,T}
 end
 
 SimplexGrid(cutPoints...) = SimplexGrid{length(cutPoints),Float64}(cutPoints...)
+SimplexGrid(weight_type::Type, cutPoints...) = SimplexGrid{length(cutPoints),weight_type}(cutPoints...)
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
 Base.size(grid::RectangleGrid) = Tuple(grid.cut_counts)

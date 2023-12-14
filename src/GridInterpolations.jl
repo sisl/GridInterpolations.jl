@@ -6,18 +6,18 @@ using LinearAlgebra
 
 export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
 
-abstract type AbstractGrid{D} end # D is the dimension
+abstract type AbstractGrid{D,T} end # D is the dimension, T is the weight type
 
-mutable struct RectangleGrid{D} <: AbstractGrid{D}
+mutable struct RectangleGrid{D,T} <: AbstractGrid{D,T}
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
     index::Vector{Int}
-    weight::Vector{Float64}
+    weight::Vector{T}
     index2::Vector{Int}
-    weight2::Vector{Float64}
+    weight2::Vector{T}
 
-    function RectangleGrid{D}(cutPoints...) where D
+    function RectangleGrid{D,T}(cutPoints...) where {D,T}
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
         myCutPoints = Array{Vector{Float64}}(undef, length(cutPoints))
@@ -44,20 +44,21 @@ mutable struct RectangleGrid{D} <: AbstractGrid{D}
     end
 end
 
-RectangleGrid(cutPoints...) = RectangleGrid{length(cutPoints)}(cutPoints...)
+RectangleGrid(cutPoints...) = RectangleGrid{length(cutPoints),Float64}(cutPoints...)
+RectangleGrid(weight_type::Type, cutPoints...) = RectangleGrid{length(cutPoints),weight_type}(cutPoints...)
 
-mutable struct SimplexGrid{D} <: AbstractGrid{D}
+mutable struct SimplexGrid{D,T} <: AbstractGrid{D,T}
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
     index::Vector{Int}
-    weight::Vector{Float64}
+    weight::Vector{T}
     x_p::Vector{Float64} # residuals
     ihi::Vector{Int} # indices of cuts above point
     ilo::Vector{Int} # indices of cuts below point
     n_ind::Vector{Int}
 
-    function SimplexGrid{D}(cutPoints...) where D
+    function SimplexGrid{D,T}(cutPoints...) where {D,T}
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
         cuts = vcat(cutPoints...)
         myCutPoints = Array{Vector{Float64}}(undef, length(cutPoints))
@@ -82,14 +83,14 @@ mutable struct SimplexGrid{D} <: AbstractGrid{D}
     end
 end
 
-SimplexGrid(cutPoints...) = SimplexGrid{length(cutPoints)}(cutPoints...)
+SimplexGrid(cutPoints...) = SimplexGrid{length(cutPoints),Float64}(cutPoints...)
 
 Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
 Base.size(grid::RectangleGrid) = Tuple(grid.cut_counts)
 Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
 
-dimensions(grid::AbstractGrid{D}) where D = D
-Base.ndims(grid::AbstractGrid{D}) where D = D
+dimensions(grid::AbstractGrid{D,T}) where {D,T} = D
+Base.ndims(grid::AbstractGrid{D,T}) where {D,T} = D
 
 label(grid::RectangleGrid) = "multilinear interpolation grid"
 label(grid::SimplexGrid) = "simplex interpolation grid"
@@ -228,9 +229,9 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
 
     if l<length(grid.index)
         # This is true if we don't need to interpolate all dimensions because we're on a boundary:
-        return grid.index[1:l]::Vector{Int}, grid.weight[1:l]::Vector{Float64}
+        return grid.index[1:l], grid.weight[1:l]
     end
-    grid.index::Vector{Int}, grid.weight::Vector{Float64}
+    return grid.index, grid.weight
 end
 
 function interpolants(grid::SimplexGrid, x::AbstractVector)
@@ -328,7 +329,7 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
 
     weight = weight ./ sum(weight)
 
-    return index::Vector{Int}, weight::Vector{Float64}
+    return index, weight
 end
 
 "Return a vector of SVectors where the ith vector represents the vertex corresponding to the ith index of grid data."

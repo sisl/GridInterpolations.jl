@@ -203,12 +203,12 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
                 @inbounds index2[i  ] = index[i] + (i_lo-cut_i)*subblock_size
                 @inbounds index2[i+l] = index[i] + (i_hi-cut_i)*subblock_size
             end
-            copyto!(index, index2)
+            @inbounds index[:] = index2
             for i = 1:l
                 @inbounds weight2[i  ] = weight[i]*low
                 @inbounds weight2[i+l] = weight[i]*(1-low)
             end
-            copyto!(weight, weight2)
+            @inbounds weight[:] = weight2
             l = l*2
             n = n*2
         end
@@ -315,7 +315,7 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
 
     weight = weight ./ sum(weight)
 
-    return index, weight
+    return SVector(index), SVector(weight)
 end
 
 "Return a vector of SVectors where the ith vector represents the vertex corresponding to the ith index of grid data."

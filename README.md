@@ -103,6 +103,10 @@ julia> for x in grid
        end
 ```
 
+## Limitations
+
+`RectangleGrid` will error in high-dimensional domains (above about 15). In these cases `SimplexGrid` should be used.
+
 ## Credits
 
 Contributors to this package include Maxim Egorov, Eric Mueller, and Mykel Kochenderfer.

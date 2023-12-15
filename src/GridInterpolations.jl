@@ -173,15 +173,24 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     cut_counts = grid.cut_counts
     cuts = grid.cuts
 
+
     # Reset the values in index and weight:
-    fill!(grid.index,0)
-    fill!(grid.index2,0)
-    fill!(grid.weight,0)
-    fill!(grid.weight2,0)
-    grid.index[1] = 1
-    grid.index2[1] = 1
-    grid.weight[1] = 1.
-    grid.weight2[1] = 1.
+    index = @MVector(ones(Int, 2^dimensions(grid)))
+    index2 = @MVector(ones(Int, 2^dimensions(grid)))
+    weight = @MVector(zeros(eltype(x), 2^dimensions(grid)))
+    weight2 = @MVector(zeros(eltype(x), 2^dimensions(grid)))
+    # index = MVector{2^dimensions(grid), Int}(undef)
+    # index2 = MVector{2^dimensions(grid), Int}(undef)
+    # weight = MVector{2^dimensions(grid), eltype(x)}(undef)
+    # weight2 = MVector{2^dimensions(grid), eltype(x)}(undef)
+    # fill!(index,1)
+    # fill!(index2,1)
+    # fill!(weight,0)
+    # fill!(weight2,0)
+    index[1] = 1
+    index2[1] = 1
+    weight[1] = one(eltype(weight))
+    weight2[1] = one(eltype(weight2))
 
     l = 1
     subblock_size = 1
@@ -207,22 +216,23 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
             end
         end
 
+        # the @inbounds are needed below to prevent allocation
         if i_lo == i_hi
             for i = 1:l
-                grid.index[i] += (i_lo - cut_i)*subblock_size
+                @inbounds index[i] += (i_lo - cut_i)*subblock_size
             end
         else
             low = (1 - (coord - cuts[i_lo])/(cuts[i_hi]-cuts[i_lo]))
             for i = 1:l
-                grid.index2[i  ] = grid.index[i] + (i_lo-cut_i)*subblock_size
-                grid.index2[i+l] = grid.index[i] + (i_hi-cut_i)*subblock_size
+                @inbounds index2[i  ] = index[i] + (i_lo-cut_i)*subblock_size
+                @inbounds index2[i+l] = index[i] + (i_hi-cut_i)*subblock_size
             end
-            copyto!(grid.index,grid.index2)
+            index[:] = index2
             for i = 1:l
-                grid.weight2[i  ] = grid.weight[i]*low
-                grid.weight2[i+l] = grid.weight[i]*(1-low)
+                @inbounds weight2[i  ] = weight[i]*low
+                @inbounds weight2[i+l] = weight[i]*(1-low)
             end
-            copyto!(grid.weight,grid.weight2)
+            weight[:] = weight2
             l = l*2
             n = n*2
         end
@@ -230,8 +240,9 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
         subblock_size = subblock_size*(cut_counts[d])
     end
 
-    v = min(l,length(grid.index))
-    return view(grid.index,1:v),view(grid.weight,1:v)
+    v = min(l,length(index))
+    return view(SVector(index),1:v), view(SVector(weight),1:v)
+    # return SVector(index), SVector(weight)
 end
 
 function interpolants(grid::SimplexGrid, x::AbstractVector)

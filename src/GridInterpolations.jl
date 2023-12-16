@@ -12,10 +12,6 @@ mutable struct RectangleGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
-    index::Vector{Int}
-    weight::Vector{Float64}
-    index2::Vector{Int}
-    weight2::Vector{Float64}
 
     function RectangleGrid{D}(cutPoints...) where D
         cut_counts = Int[length(cutPoints[i]) for i = 1:length(cutPoints)]
@@ -32,15 +28,7 @@ mutable struct RectangleGrid{D} <: AbstractGrid{D}
             end
             myCutPoints[i] = cutPoints[i]
         end
-        index = zeros(Int, 2^numDims)
-        weight = zeros(Float64, 2^numDims)
-        index[1] = 1
-        weight[1] = 1.0
-        index2 = zeros(Int, 2^numDims)
-        weight2 = zeros(Float64, 2^numDims)
-        index2[1] = 1
-        weight2[1] = 1.0
-        return new(myCutPoints, cut_counts, cuts, index, weight, index2, weight2)
+        return new(myCutPoints, cut_counts, cuts)
     end
 end
 
@@ -50,8 +38,6 @@ mutable struct SimplexGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
-    index::Vector{Int}
-    weight::Vector{Float64}
     x_p::Vector{Float64} # residuals
     ihi::Vector{Int} # indices of cuts above point
     ilo::Vector{Int} # indices of cuts below point
@@ -72,13 +58,11 @@ mutable struct SimplexGrid{D} <: AbstractGrid{D}
             end
             myCutPoints[i] = cutPoints[i]
         end
-        index = zeros(Int, numDims+1) # d+1 points for simplex
-        weight = zeros(Float64, numDims+1)
         x_p = zeros(numDims) # residuals
         ihi = zeros(Int, numDims) # indicies of cuts above point
         ilo = zeros(Int, numDims) # indicies of cuts below point
         n_ind = zeros(Int, numDims)
-        return new(myCutPoints, cut_counts, cuts, index, weight, x_p, ihi, ilo, n_ind)
+        return new(myCutPoints, cut_counts, cuts, x_p, ihi, ilo, n_ind)
     end
 end
 
@@ -173,15 +157,16 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     cut_counts = grid.cut_counts
     cuts = grid.cuts
 
+
     # Reset the values in index and weight:
-    fill!(grid.index,0)
-    fill!(grid.index2,0)
-    fill!(grid.weight,0)
-    fill!(grid.weight2,0)
-    grid.index[1] = 1
-    grid.index2[1] = 1
-    grid.weight[1] = 1.
-    grid.weight2[1] = 1.
+    index = @MVector(ones(Int, 2^dimensions(grid)))
+    index2 = @MVector(ones(Int, 2^dimensions(grid)))
+    weight = @MVector(zeros(eltype(x), 2^dimensions(grid)))
+    weight2 = @MVector(zeros(eltype(x), 2^dimensions(grid)))
+    index[1] = 1
+    index2[1] = 1
+    weight[1] = one(eltype(weight))
+    weight2[1] = one(eltype(weight2))
 
     l = 1
     subblock_size = 1
@@ -207,22 +192,23 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
             end
         end
 
+        # the @inbounds are needed below to prevent allocation
         if i_lo == i_hi
             for i = 1:l
-                grid.index[i] += (i_lo - cut_i)*subblock_size
+                @inbounds index[i] += (i_lo - cut_i)*subblock_size
             end
         else
             low = (1 - (coord - cuts[i_lo])/(cuts[i_hi]-cuts[i_lo]))
             for i = 1:l
-                grid.index2[i  ] = grid.index[i] + (i_lo-cut_i)*subblock_size
-                grid.index2[i+l] = grid.index[i] + (i_hi-cut_i)*subblock_size
+                @inbounds index2[i  ] = index[i] + (i_lo-cut_i)*subblock_size
+                @inbounds index2[i+l] = index[i] + (i_hi-cut_i)*subblock_size
             end
-            copyto!(grid.index,grid.index2)
+            @inbounds index[:] = index2
             for i = 1:l
-                grid.weight2[i  ] = grid.weight[i]*low
-                grid.weight2[i+l] = grid.weight[i]*(1-low)
+                @inbounds weight2[i  ] = weight[i]*low
+                @inbounds weight2[i+l] = weight[i]*(1-low)
             end
-            copyto!(grid.weight,grid.weight2)
+            @inbounds weight[:] = weight2
             l = l*2
             n = n*2
         end
@@ -230,14 +216,14 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
         subblock_size = subblock_size*(cut_counts[d])
     end
 
-    v = min(l,length(grid.index))
-    return view(grid.index,1:v),view(grid.weight,1:v)
+    v = min(l,length(index))
+    return view(SVector(index),1:v), view(SVector(weight),1:v)
 end
 
 function interpolants(grid::SimplexGrid, x::AbstractVector)
 
-    weight = grid.weight
-    index  = grid.index
+    weight = MVector{dimensions(grid)+1, eltype(x)}(undef)
+    index  = MVector{dimensions(grid)+1, Int}(undef)
 
     x_p = grid.x_p # residuals
     ihi = grid.ihi # indicies of cuts above point
@@ -329,7 +315,7 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
 
     weight = weight ./ sum(weight)
 
-    return index::Vector{Int}, weight::Vector{Float64}
+    return SVector(index), SVector(weight)
 end
 
 "Return a vector of SVectors where the ith vector represents the vertex corresponding to the ith index of grid data."

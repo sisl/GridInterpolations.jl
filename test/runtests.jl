@@ -99,7 +99,7 @@ function compareToGrid(testType::Symbol=:random, numDims::Int=3, pointsPerDim::I
 
 end
 
-function getFractionalIndexes(g::AbstractGrid, s::Array)
+function getFractionalIndexes(g::AbstractGrid, s::AbstractArray)
     # Returns the fractional index of sprime within the grid-defined discretization.
 
     fracInd = Array{Int64}(undef, length(g.cutPoints))

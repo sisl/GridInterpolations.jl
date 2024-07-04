@@ -127,8 +127,8 @@ end
 # masked interpolation ignores points that are masked
 function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector, mask::BitArray{1})
     index, weight = interpolants(grid, x)
-    val = 0
-    totalWeight = 0
+    val = zero(data)
+    totalWeight = zero(data)
     for i = 1:length(index)
         if mask[index[i]]
             continue
@@ -139,11 +139,11 @@ function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVect
     return val / totalWeight
 end
 
-interpolate(grid::AbstractGrid, data::Matrix, x::AbstractVector) = interpolate(grid, map(Float64, data[:]), x)
+interpolate(grid::AbstractGrid, data::Matrix, x::AbstractVector) = interpolate(grid, map(eltype(data), data[:]), x)
 
 function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
     index, weight = interpolants(grid, x)
-    v = 0.0
+    v = zero(data)
     for (i,data_ind) in enumerate(index)
         v += data[data_ind]*weight[i]
     end
@@ -244,11 +244,11 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
         if coord <= cuts[ii]
             ihi[i] = ii
             ilo[i] = ii
-            x_p[i] = 0.0
+            x_p[i] = zero(x)
         elseif coord >= cuts[lasti]
             ihi[i] = lasti
             ilo[i] = lasti
-            x_p[i] = 0.0
+            x_p[i] = zero(x)
         else
             # increment through cut points if in bounds
             while cuts[ii] < coord
@@ -258,7 +258,7 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
             if cuts[ii] == coord
                 ilo[i] = ii
                 ihi[i] = ii
-                x_p[i] = 0.0
+                x_p[i] = zero(x)
             else
                 # if between cuts assign lo and high indecies and translate
                 ilo[i] = ii-1

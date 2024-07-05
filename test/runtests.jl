@@ -401,6 +401,15 @@ end
     end
 end
 
+@testset "Data types" begin
+    grid = RectangleGrid(1.:10, 1.:10)
+    data = rand(Complex{Float64}, 10,10)
+    @test typeof(interpolate(grid, data, [-1.5,1.5])) == Complex{Float64}
+
+    data = rand(Float32, 10,10)
+    @test typeof(interpolate(grid, data, [-1.5f0,1.5f0])) == Float32
+end
+
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
 

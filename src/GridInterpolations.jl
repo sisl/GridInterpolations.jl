@@ -157,12 +157,12 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     cut_counts = grid.cut_counts
     cuts = grid.cuts
 
-
     # Reset the values in index and weight:
-    index = @MVector(ones(Int, 2^dimensions(grid)))
-    index2 = @MVector(ones(Int, 2^dimensions(grid)))
-    weight = @MVector(zeros(eltype(x), 2^dimensions(grid)))
-    weight2 = @MVector(zeros(eltype(x), 2^dimensions(grid)))
+    num_points = 2^dimensions(grid)
+    index = MVector{num_points, Int}(undef)
+    index2 = MVector{num_points, Int}(undef)
+    weight = MVector{num_points, eltype(x)}(undef)
+    weight2 = MVector{num_points, eltype(x)}(undef)
     index[1] = 1
     index2[1] = 1
     weight[1] = one(eltype(weight))

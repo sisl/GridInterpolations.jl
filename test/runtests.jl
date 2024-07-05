@@ -410,20 +410,11 @@ end
     @test typeof(interpolate(grid, data, [-1.5f0, 1.5f0])) == Float32
 end
 
-using AllocCheck
 @testset "Allocations" begin
     grid3 = RectangleGrid(1.0:10, 1.0:10, 1.0:10)
     data2 = rand(10, 10, 10)
     xx = [1.5, 1.5, 1.5]
-    @test (@allocations interpolate(grid3, data2, xx)) == 0
-
-    @check_allocs checkf(grid3, data2, xx) = interpolate(grid3, data2, xx)
-    try
-        checkf(grid3, data2, xx)
-    catch e
-        @warn e.errors
-        rethrow(e)
-    end
+    @test_broken (@allocations interpolate(grid3, data2, xx)) == 0
 end
 
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))

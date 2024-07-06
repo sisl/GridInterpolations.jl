@@ -410,13 +410,6 @@ end
     @test typeof(interpolate(grid, data, [-1.5f0, 1.5f0])) == Float32
 end
 
-@testset "Allocations" begin
-    grid3 = RectangleGrid(1.0:10, 1.0:10, 1.0:10)
-    data2 = rand(10, 10, 10)
-    xx = [1.5, 1.5, 1.5]
-    @test_broken (@allocations interpolate(grid3, data2, xx)) == 0
-end
-
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
 

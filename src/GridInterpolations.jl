@@ -164,7 +164,7 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     weight = MVector{num_points, eltype(x)}(undef)
     weight2 = MVector{num_points, eltype(x)}(undef)
 
-    # Note: these values are set explicitly because we have not verified that the logic below is independent of the initial values. See discussion in PR #47
+    # Note: these values are set explicitly because we have not verified that the logic below is independent of the initial values. See discussion in PR #47. These can be removed if it can be proved that the logic is independent of the initial values.
     index .= 1
     index2 .= 1
     weight .= zero(eltype(weight))

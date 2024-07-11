@@ -4,6 +4,7 @@ using LinearAlgebra
 using Random
 using DelimitedFiles
 using BenchmarkTools
+using StaticArrays
 
 # use import otherwise Interpolations.interpolate conflicts with GridInterpolations.interpolate
 import Interpolations: BSpline, Linear, OnGrid, Flat
@@ -262,6 +263,7 @@ function test_rect_implemented()
     @test x == [5, 5]
 
     @test interpolants(rgrid, [1, 1]) == ([1], [1.0])
+    @show @ballocated(interpolants($rgrid, $([1,1])))
     @test @ballocated(interpolants($rgrid, $([1,1]))) == 0
     @test interpolants(rgrid, [2, 5]) == ([3], [1.0])
     @test @ballocated(interpolants($rgrid, $([2, 5]))) == 0

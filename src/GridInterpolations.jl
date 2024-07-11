@@ -164,14 +164,21 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     weight = MVector{num_points, eltype(x)}(undef)
     weight2 = MVector{num_points, eltype(x)}(undef)
 
-    # Note: these values are set explicitly because we have not verified that the logic below is independent of the initial values. See discussion in PR #47. These can be removed if it can be proved that the logic is independent of the initial values.
-    index .= 1
-    index2 .= 1
-    weight .= zero(eltype(weight))
-    weight2 .= zero(eltype(weight2))
+    # # Note: these values are set explicitly because we have not verified that the logic below is independent of the initial values. See discussion in PR #47. These can be removed if it can be proved that the logic is independent of the initial values.
+    for i in 1:num_points
+        @inbounds index[i] = 1
+        @inbounds index2[i] = 1
+        @inbounds weight[i] = zero(eltype(x))
+        @inbounds weight2[i] = zero(eltype(x))
+    end
+   
+    # index = @MVector ones(Int, num_points)
+    # index2 = @MVector ones(Int, num_points)
+    # weight = @MVector zeros(eltype(x), num_points)
+    # weight2 = @MVector zeros(eltype(x), num_points)
 
-    weight[1] = one(eltype(weight))
-    weight2[1] = one(eltype(weight2))
+    @inbounds weight[1] = one(eltype(weight))
+    @inbounds weight2[1] = one(eltype(weight2))
 
     l = 1
     subblock_size = 1
@@ -288,16 +295,18 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
     # get weight
     for i = 1:(length(x_p)+1)
         if i == 1
-            weight[i] = 1 - x_p[i]
+            @inbounds weight[i] = 1 - x_p[i]
         elseif i == length(x_p) + 1
-            weight[i] = x_p[i-1]
+            @inbounds weight[i] = x_p[i-1]
         else
-            weight[i] = x_p[i-1] - x_p[i]
+            @inbounds weight[i] = x_p[i-1] - x_p[i]
         end
     end
 
     # get indices
-    fill!(index, 0)
+    for i in 1:length(index)
+        @inbounds index[i] = 0
+    end
     i_index = 0
     for i = 1:(length(x_p)+1)
         siz = 1
@@ -310,17 +319,17 @@ function interpolants(grid::SimplexGrid, x::AbstractVector)
             onHi = ((i_index & good_count) > 0)
             good_count <<= 1
             if onHi
-                index[i] += (ihi[k] - 1 - ct) * siz
+                @inbounds index[i] += (ihi[k] - 1 - ct) * siz
             else
-                index[i] += (ilo[k] - 1 - ct) * siz
+                @inbounds index[i] += (ilo[k] - 1 - ct) * siz
             end
             siz = siz * cut_counts[k]
             ct += cut_counts[k]
         end
-        index[i] += 1
+        @inbounds index[i] += 1
     end
 
-    weight = weight ./ sum(weight)
+    @inbounds weight = weight ./ sum(weight)
 
     return SVector(index), SVector(weight)
 end

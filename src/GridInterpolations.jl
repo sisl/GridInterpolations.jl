@@ -163,8 +163,10 @@ function interpolants(grid::RectangleGrid, x::AbstractVector)
     index2 = MVector{num_points, Int}(undef)
     weight = MVector{num_points, eltype(x)}(undef)
     weight2 = MVector{num_points, eltype(x)}(undef)
-    index[1] = 1
-    index2[1] = 1
+    index .= 1
+    index2 .= 1
+    weight .= zero(eltype(weight))
+    weight2 .= zero(eltype(weight2))
     weight[1] = one(eltype(weight))
     weight2[1] = one(eltype(weight2))
 

@@ -33,7 +33,7 @@ function benchmark(GridType::Type, n_dims::Int; n_points_per_dim::Int=15, n_rand
     return trial
 end
 
-verbosity = 1
+verbosity = 2
 for ndims in 1:6
 
     println("\n##################################################")

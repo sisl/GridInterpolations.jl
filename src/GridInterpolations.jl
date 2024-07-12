@@ -139,8 +139,6 @@ function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVect
     return val / totalWeight
 end
 
-interpolate(grid::AbstractGrid, data::Matrix, x::AbstractVector) = interpolate(grid, map(eltype(data), data[:]), x)
-
 function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
     index, weight = interpolants(grid, x)
     v = zero(eltype(data))

@@ -3,6 +3,8 @@ using Test
 using LinearAlgebra
 using Random
 using DelimitedFiles
+using BenchmarkTools
+using StaticArrays
 
 # use import otherwise Interpolations.interpolate conflicts with GridInterpolations.interpolate
 import Interpolations: BSpline, Linear, OnGrid, Flat
@@ -261,14 +263,20 @@ function test_rect_implemented()
     @test x == [5, 5]
 
     @test interpolants(rgrid, [1, 1]) == ([1], [1.0])
+    @show @ballocated(interpolants($rgrid, $([1,1])))
+    @test @ballocated(interpolants($rgrid, $([1,1]))) == 0
     @test interpolants(rgrid, [2, 5]) == ([3], [1.0])
+    @test @ballocated(interpolants($rgrid, $([2, 5]))) == 0
 
     indices, weights = interpolants(rgrid, [1.5, 3])
     @test indices == [1, 3]
     @test isapprox(weights, [0.666667, 0.333333], rtol=1e-5)
 
     @test interpolate(rgrid, [1, 2, 3, 4], [1, 1]) == 1.0
+    @test @ballocated(interpolate($rgrid, $([1, 2, 3, 4]), $([1, 1]))) == 0
     @test maskedInterpolate(rgrid, [1, 2, 3, 4], [1, 1], BitArray([false, false, false, false])) == 1.0
+    @test @ballocated(maskedInterpolate($rgrid, $([1, 2, 3, 4]), $([1, 1]), $(BitArray([false, false, false, false])))) == 0
+
     @test isnan(maskedInterpolate(rgrid, [1, 2, 3, 4], [1, 1], BitArray([true, false, false, false])))
 
     @test isapprox(interpolate(rgrid, [1, 2, 3, 4], [1.5, 3]), 1.66666666, rtol=1e-5)
@@ -296,6 +304,8 @@ function test_simplex_implemented()
     @test x == [5, 5]
 
     indices, weights = interpolants(grid, [1, 1])
+    @test @ballocated(interpolants($grid, $([1, 1]))) == 0
+
     full_weight_indices = findall(x -> x == 1, weights)
     @test length(full_weight_indices) == 1
     @test weights[full_weight_indices[1]] == 1.0
@@ -309,7 +319,9 @@ function test_simplex_implemented()
     @test isapprox(weights[full_weight_indices[1]], 0.333333, rtol=1e-5) == true
 
     @test interpolate(grid, [1, 2, 3, 4], [1, 1]) == 1.0
+    @test @ballocated(interpolate($grid, $([1, 2, 3, 4]), $([1, 1]))) == 0
     @test maskedInterpolate(grid, [1, 2, 3, 4], [1, 1], BitArray([false, false, false, false])) == 1.0
+    @test @ballocated(maskedInterpolate($grid, $([1, 2, 3, 4]), $([1, 1]), $(BitArray([false, false, false, false])))) == 0
     @test isnan(maskedInterpolate(grid, [1, 2, 3, 4], [1, 1], BitArray([true, false, false, false])))
 
     @test isapprox(interpolate(grid, [1, 2, 3, 4], [1.5, 3]), 1.66666666, rtol=1e-5)

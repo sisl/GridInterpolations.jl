@@ -125,7 +125,7 @@ end
 
 
 # masked interpolation ignores points that are masked
-function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector, mask::BitArray{1})
+function maskedInterpolate(grid::AbstractGrid, data::AbstractArray, x::AbstractVector, mask::BitArray{1})
     index, weight = interpolants(grid, x)
     val = zero(eltype(data))
     totalWeight = zero(eltype(data))
@@ -139,7 +139,7 @@ function maskedInterpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVect
     return val / totalWeight
 end
 
-function interpolate(grid::AbstractGrid, data::DenseArray, x::AbstractVector)
+function interpolate(grid::AbstractGrid, data::AbstractArray, x::AbstractVector)
     index, weight = interpolants(grid, x)
     v = zero(eltype(data))
     for (i, data_ind) in enumerate(index)

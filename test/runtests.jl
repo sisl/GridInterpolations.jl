@@ -326,7 +326,7 @@ end
     @test interpolate(grid, data, [1.1, 10.1]) == 11.0
     @test interpolate(grid, data, [2.9, 10.1]) == 13.0
     @test interpolate(grid, data, [2.0, 11.9]) == 22.0
-    @test interpolate(grid, data, [3.6, 3.9]) == data[4, 4]
+    @test interpolate(grid, data, [3.6, 3.9]) == data[3, 2]
 end
 
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions

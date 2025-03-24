@@ -370,3 +370,57 @@ Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndi
 Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
 
 end # module
+# ============ NearestGrid ==============
+struct NearestGrid{D} <: AbstractGrid{D}
+    cutPoints::Vector{Vector{Float64}}
+    cut_counts::Vector{Int}
+    cuts::Vector{Float64}
+
+    function NearestGrid{D}(cutPoints::Vararg{Vector{Float64}, D}) where {D}
+        cut_counts = Int[length(cutPoints[i]) for i in 1:D]
+        cuts = vcat(cutPoints...)
+        myCutPoints = Array{Vector{Float64}}(undef, D)
+        for i in 1:D
+            if length(Set(cutPoints[i])) != length(cutPoints[i])
+                error(@sprintf("Duplicate cut points are not allowed (duplicates observed in dimension %d)", i))
+            end
+            if !issorted(cutPoints[i])
+                error("Cut points must be sorted")
+            end
+            myCutPoints[i] = cutPoints[i]
+        end
+        return new{D}(myCutPoints, cut_counts, cuts)
+    end
+end
+
+NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
+
+# =======================================
+
+Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
+Base.size(grid::RectangleGrid) = Tuple(grid.cut_counts)
+Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
+Base.length(grid::NearestGrid) = prod(grid.cut_counts)
+
+dimensions(grid::AbstractGrid{D}) where {D} = D
+Base.ndims(grid::AbstractGrid{D}) where {D} = D
+
+label(grid::RectangleGrid) = "multilinear interpolation grid"
+label(grid::SimplexGrid) = "simplex interpolation grid"
+label(grid::NearestGrid) = "nearest neighbor interpolation grid"
+
+# NearestGrid interpolation (no interpolation, just nearest neighbor)
+function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
+    idxs = [argmin(abs.(cut - xi)) for (cut, xi) in zip(grid.cutPoints, x)]
+    return data[CartesianIndex(idxs...)]
+end
+
+# RectangleGrid iteration support
+function Base.iterate(grid::RectangleGrid, state::Int64=1)
+    return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
+end
+
+# NearestGrid iteration support
+function Base.iterate(grid::NearestGrid, state::Int64=1)
+    return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
+end

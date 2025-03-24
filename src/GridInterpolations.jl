@@ -394,6 +394,7 @@ end
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
 
 Base.length(grid::NearestGrid) = prod(grid.cut_counts)
+Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)

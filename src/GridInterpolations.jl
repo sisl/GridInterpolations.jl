@@ -398,15 +398,16 @@ Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
-    idxs = map(eachindex(grid.cutPoints)) do i
-        findnearest(grid.cutPoints[i], x[i])
-    end
+    idxs = map((cut, xi) -> findnearest(cut, xi), grid.cutPoints, x)
     return data[CartesianIndex(idxs...)]
 end
 
 function findnearest(vec::Vector{Float64}, val::Float64)
-    _, idx = findmin(abs.(vec .- val))
-    return idx
+    # Handles tie-breaking by choosing the higher index when distances are equal
+    dists = abs.(vec .- val)
+    min_dist = minimum(dists)
+    candidates = findall(≈(min_dist), dists)
+    return maximum(candidates)  # prefer higher index if tied
 end
 
 function Base.iterate(grid::NearestGrid, state::Int64=1)

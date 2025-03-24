@@ -413,5 +413,36 @@ end
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
 
+@testset "NearestGrid" begin
+    using GridInterpolations
+
+    # Construct a NearestGrid
+    grid = NearestGrid([1.0, 3.0, 5.0], [2.0, 4.0])
+
+    # Create dummy data
+    data = reshape(collect(1.0:length(grid)), size(grid))
+
+    # Test interpolation at exact grid points
+    @test interpolate(grid, data, [1.0, 2.0]) == data[1, 1]
+    @test interpolate(grid, data, [5.0, 4.0]) == data[3, 2]
+
+    # Test interpolation at in-between points (should pick nearest)
+    @test interpolate(grid, data, [1.9, 2.1]) == data[1, 1]
+    @test interpolate(grid, data, [3.6, 3.9]) == data[3, 2]
+    @test interpolate(grid, data, [2.5, 2.0]) == data[2, 1]
+
+    # Test bounds (should still return nearest)
+    @test interpolate(grid, data, [0.0, 0.0]) == data[1, 1]
+    @test interpolate(grid, data, [10.0, 10.0]) == data[3, 2]
+
+    # Test length and dimensions
+    @test length(grid) == 6
+    @test dimensions(grid) == 2
+
+    # Test iteration
+    pts = [x for x in grid]
+    @test length(pts) == length(grid)
+    @test all(typeof(p) == Vector{Float64} for p in pts)
+end
 
 println("All tests complete")

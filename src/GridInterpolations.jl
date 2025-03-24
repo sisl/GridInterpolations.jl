@@ -374,21 +374,21 @@ mutable struct NearestGrid{D} <: AbstractGrid{D}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
 
-    function NearestGrid{D}(cutPoints::Vararg{Vector{Float64}, D}) where {D}
-        cut_counts = Int[length(cutPoints[i]) for i in 1:D]
-        cuts = vcat(cutPoints...)
-        myCutPoints = Array{Vector{Float64}}(undef, D)
-        for i in 1:D
-            if length(Set(cutPoints[i])) != length(cutPoints[i])
-                error(@sprintf("Duplicate cut points are not allowed (duplicates observed in dimension %d)", i))
-            end
-            if !issorted(cutPoints[i])
-                error("Cut points must be sorted")
-            end
-            myCutPoints[i] = cutPoints[i]
+    function NearestGrid{D}(cutPoints::Vararg{AbstractVector{<:Real}, D}) where {D}
+    cut_counts = Int[length(cutPoints[i]) for i in 1:D]
+    cuts = vcat(cutPoints...)
+    myCutPoints = [Float64[cp...] for cp in cutPoints]
+    for i in 1:D
+        if length(Set(myCutPoints[i])) != length(myCutPoints[i])
+            error(@sprintf("Duplicate cut points are not allowed (duplicates observed in dimension %d)", i))
         end
-        return new(myCutPoints, cut_counts, cuts)
+        if !issorted(myCutPoints[i])
+            error("Cut points must be sorted")
+        end
     end
+    return new{D}(myCutPoints, cut_counts, cuts)
+end
+
 end
 
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)

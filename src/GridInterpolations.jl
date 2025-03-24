@@ -403,10 +403,16 @@ function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
 end
 
 function findnearest(vec::Vector{Float64}, val::Float64)
-    dists = abs.(vec .- val)
-    min_dist = minimum(dists)
-    candidates = findall(≈(min_dist), dists)
-    return minimum(candidates)  # ✅ prefer lower index if tied
+    best_idx = 1
+    best_dist = abs(vec[1] - val)
+    for i in 2:length(vec)
+        d = abs(vec[i] - val)
+        if d < best_dist || (d == best_dist && i < best_idx)
+            best_dist = d
+            best_idx = i
+        end
+    end
+    return best_idx
 end
 
 function Base.iterate(grid::NearestGrid, state::Int64=1)

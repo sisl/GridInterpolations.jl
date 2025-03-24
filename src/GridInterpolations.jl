@@ -4,7 +4,7 @@ using StaticArrays
 using Printf
 using LinearAlgebra
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
+export AbstractGrid, RectangleGrid, SimplexGrid, NearestGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
 
 abstract type AbstractGrid{D} end # D is the dimension
 
@@ -369,9 +369,7 @@ end
 Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[key])
 Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
 
-end # module
-# ============ NearestGrid ==============
-struct NearestGrid{D} <: AbstractGrid{D}
+mutable struct NearestGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}
     cut_counts::Vector{Int}
     cuts::Vector{Float64}
@@ -389,38 +387,22 @@ struct NearestGrid{D} <: AbstractGrid{D}
             end
             myCutPoints[i] = cutPoints[i]
         end
-        return new{D}(myCutPoints, cut_counts, cuts)
+        return new(myCutPoints, cut_counts, cuts)
     end
 end
 
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
 
-# =======================================
-
-Base.length(grid::RectangleGrid) = prod(grid.cut_counts)
-Base.size(grid::RectangleGrid) = Tuple(grid.cut_counts)
-Base.length(grid::SimplexGrid) = prod(grid.cut_counts)
 Base.length(grid::NearestGrid) = prod(grid.cut_counts)
-
-dimensions(grid::AbstractGrid{D}) where {D} = D
-Base.ndims(grid::AbstractGrid{D}) where {D} = D
-
-label(grid::RectangleGrid) = "multilinear interpolation grid"
-label(grid::SimplexGrid) = "simplex interpolation grid"
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
-# NearestGrid interpolation (no interpolation, just nearest neighbor)
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
     idxs = [argmin(abs.(cut - xi)) for (cut, xi) in zip(grid.cutPoints, x)]
     return data[CartesianIndex(idxs...)]
 end
 
-# RectangleGrid iteration support
-function Base.iterate(grid::RectangleGrid, state::Int64=1)
-    return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
-end
-
-# NearestGrid iteration support
 function Base.iterate(grid::NearestGrid, state::Int64=1)
     return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
 end
+
+    end # module

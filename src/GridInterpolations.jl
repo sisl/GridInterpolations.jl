@@ -397,7 +397,7 @@ Base.length(grid::NearestGrid) = prod(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
-    idxs = [argmin(abs.(cut - xi)) for (cut, xi) in zip(grid.cutPoints, x)]
+    idxs = [argmin(abs.(cut .- xi)) for (cut, xi) in zip(grid.cutPoints, x)]
     return data[CartesianIndex(idxs...)]
 end
 

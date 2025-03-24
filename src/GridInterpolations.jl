@@ -403,11 +403,10 @@ function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
 end
 
 function findnearest(vec::Vector{Float64}, val::Float64)
-    # Handles tie-breaking by choosing the higher index when distances are equal
     dists = abs.(vec .- val)
     min_dist = minimum(dists)
     candidates = findall(≈(min_dist), dists)
-    return maximum(candidates)  # prefer higher index if tied
+    return minimum(candidates)  # ✅ prefer lower index if tied
 end
 
 function Base.iterate(grid::NearestGrid, state::Int64=1)

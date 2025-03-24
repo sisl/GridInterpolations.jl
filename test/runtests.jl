@@ -320,6 +320,14 @@ end
     test_simplex_implemented()
 end
 
+@testset "NearestGrid" begin
+    grid = NearestGrid(1.0:3.0, 10.0:2.0:14.0)  # 2D grid
+    data = [11.0, 12.0, 13.0, 21.0, 22.0, 23.0]  # should be size (3, 2)
+    @test interpolate(grid, data, [1.1, 10.1]) == 11.0
+    @test interpolate(grid, data, [2.9, 10.1]) == 13.0
+    @test interpolate(grid, data, [2.0, 13.9]) == 23.0
+end
+
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions
 function test_ordering(grid)
     @test ind2x(grid, 1) == [2, 18] # 1

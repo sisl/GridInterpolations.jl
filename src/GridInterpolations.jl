@@ -399,9 +399,14 @@ label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
     idxs = map(eachindex(grid.cutPoints)) do i
-        argmin(abs.(grid.cutPoints[i] .- x[i]))
+        findnearest(grid.cutPoints[i], x[i])
     end
     return data[CartesianIndex(idxs...)]
+end
+
+function findnearest(vec::Vector{Float64}, val::Float64)
+    _, idx = findmin(abs.(vec .- val))
+    return idx
 end
 
 function Base.iterate(grid::NearestGrid, state::Int64=1)

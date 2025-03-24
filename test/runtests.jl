@@ -321,11 +321,11 @@ end
 end
 
 @testset "NearestGrid" begin
-    grid = NearestGrid(1.0:3.0, 10.0:2.0:14.0)  # 2D grid
-    data = reshape([11.0, 12.0, 13.0, 21.0, 22.0, 23.0], 3, 2)  # 3 rows (x), 2 cols (y)
+    grid = NearestGrid(1.0:3.0, [10.0, 12.0])  # 2D grid with 3×2 size
+    data = reshape([11.0, 12.0, 13.0, 21.0, 22.0, 23.0], 3, 2)  # 3 rows, 2 cols
     @test interpolate(grid, data, [1.1, 10.1]) == 11.0
     @test interpolate(grid, data, [2.9, 10.1]) == 13.0
-    @test interpolate(grid, data, [2.0, 13.9]) == 23.0
+    @test interpolate(grid, data, [2.0, 11.9]) == 22.0
 end
 
 # check whether rectangle & simplex expect sorted order of cutpoints on dimensions

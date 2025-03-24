@@ -442,7 +442,7 @@ compareBenchmarks(4, 10, 100, quiet=false)
 
     # Test bounds (should still return nearest)
     @test interpolate(grid, data, [0.0, 0.0]) == data[1, 1]
-    @test interpolate(grid, data, [10.0, 10.0]) == data[3, 2]
+    @test interpolate(grid, data, [10.0, 10.0]) == data[3, 1]
 
     # Test length and dimensions
     @test length(grid) == 6

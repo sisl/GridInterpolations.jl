@@ -122,4 +122,4 @@ ForwardDiff.gradient(f, x)
 
 ## Credits
 
-Contributors to this package include Maxim Egorov, Eric Mueller, and Mykel Kochenderfer.
+Contributors to this package include Maxim Egorov, Eric Mueller, Mykel Kochenderfer, and Anshrin Srivastava.

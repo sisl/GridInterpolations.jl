@@ -415,8 +415,8 @@ compareBenchmarks(4, 10, 100, quiet=false)
 
 @testset "NearestGrid" begin
     grid = NearestGrid([2.0, 4.0], [1.0, 3.0, 5.0])  # [Y-axis, X-axis]
-    data = reshape(collect(1.0:length(grid)), size(grid))  # 2 rows (Y), 3 cols (X)
-
+   data = [1.0 3.0 5.0;
+        2.0 4.0 6.0]  # 2 rows (Y), 3 cols (X)
     @test interpolate(grid, data, [2.0, 1.0]) == data[1, 1]
     @test interpolate(grid, data, [4.0, 5.0]) == data[2, 3]
     @test interpolate(grid, data, [2.1, 1.9]) == data[1, 1]

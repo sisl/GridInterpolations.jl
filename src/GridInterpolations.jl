@@ -369,54 +369,61 @@ end
 Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[key])
 Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
 
+# Define the NearestGrid type
 mutable struct NearestGrid{D} <: AbstractGrid{D}
-    cutPoints::Vector{Vector{Float64}}
-    cut_counts::Vector{Int}
-    cuts::Vector{Float64}
+    cutPoints::Vector{Vector{Float64}}  # List of cut points for each dimension
+    cut_counts::Vector{Int}             # Number of cut points per dimension
+    cuts::Vector{Float64}               # Flattened list of all cut points
 
     function NearestGrid{D}(cutPoints::Vararg{AbstractVector{<:Real}, D}) where {D}
-    cut_counts = Int[length(cutPoints[i]) for i in 1:D]
-    cuts = vcat(cutPoints...)
-    myCutPoints = [Float64[cp...] for cp in cutPoints]
-    for i in 1:D
-        if length(Set(myCutPoints[i])) != length(myCutPoints[i])
-            error(@sprintf("Duplicate cut points are not allowed (duplicates observed in dimension %d)", i))
+        myCutPoints = [Float64[cp...] for cp in cutPoints]
+        cut_counts = Int[length(cp) for cp in myCutPoints]
+        cuts = vcat(myCutPoints...)  # Flattened list (not used in interpolate)
+
+        for i in 1:D
+            if length(Set(myCutPoints[i])) != length(myCutPoints[i])
+                error("Duplicate cut points are not allowed in dimension $i")
+            end
+            if !issorted(myCutPoints[i])
+                error("Cut points must be sorted in dimension $i")
+            end
         end
-        if !issorted(myCutPoints[i])
-            error("Cut points must be sorted")
-        end
+
+        return new{D}(myCutPoints, cut_counts, cuts)
     end
-    return new{D}(myCutPoints, cut_counts, cuts)
 end
 
-end
-
+# Convenience constructor
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
 
+# Core interface functions
 Base.length(grid::NearestGrid) = prod(grid.cut_counts)
 Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
+GridInterpolations.dimensions(grid::NearestGrid) = length(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
+# Interpolation function
 function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
     idxs = map((cut, xi) -> findnearest(cut, xi), grid.cutPoints, x)
     return data[CartesianIndex(idxs...)]
 end
 
+# Nearest neighbor index finder (efficient and accurate)
 function findnearest(vec::Vector{Float64}, val::Float64)
-    best_idx = 1
-    best_dist = abs(vec[1] - val)
-    for i in 2:length(vec)
-        d = abs(vec[i] - val)
-        if d < best_dist || (d == best_dist && i < best_idx)
-            best_dist = d
-            best_idx = i
-        end
-    end
-    return best_idx
+    _, idx = findmin(abs.(vec .- val))
+    return idx
 end
 
-function Base.iterate(grid::NearestGrid, state::Int64=1)
+# Iteration over the grid
+function Base.iterate(grid::NearestGrid, state::Int=1)
     return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
+end
+
+# Convert a flat index to a grid coordinate
+function ind2x(grid::NearestGrid, index::Int)
+    inds = CartesianIndices(Tuple(grid.cut_counts))
+    coord = inds[index]
+    return [grid.cutPoints[i][coord[i]] for i in 1:length(grid.cutPoints)]
 end
 
     end # module

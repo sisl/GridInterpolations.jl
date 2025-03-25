@@ -403,7 +403,7 @@ GridInterpolations.dimensions(grid::NearestGrid) = length(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
 # Nearest neighbor index finder
-function findnearest(vec::Vector{Float64}, val::Float64)
+function findnearest(vec::Vector{Float64}, val::Real)
     _, idx = findmin(abs.(vec .- val))
     return idx
 end

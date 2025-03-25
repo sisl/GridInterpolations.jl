@@ -415,43 +415,43 @@ compareBenchmarks(4, 10, 100, quiet=false)
 
 @testset "NearestGrid" begin
     using GridInterpolations
+    using ForwardDiff
 
     # Create a grid with x values [1.0, 3.0, 5.0] and y values [2.0, 4.0]
     grid = NearestGrid([1.0, 3.0, 5.0], [2.0, 4.0])
 
     # Create data that goes with the grid
-    # This is a 3x2 table of values:
-    # Row = x (1.0, 3.0, 5.0), Column = y (2.0, 4.0)
     data = [1.0 4.0;   # data at x=1.0
             2.0 5.0;   # data at x=3.0
             3.0 6.0]   # data at x=5.0
 
     # Test points that exactly match the grid
-    @test interpolate(grid, data, [1.0, 2.0]) == 1.0  # exact match
-    @test interpolate(grid, data, [5.0, 4.0]) == 6.0  # exact match
+    @test interpolate(grid, data, [1.0, 2.0]) == 1.0
+    @test interpolate(grid, data, [5.0, 4.0]) == 6.0
 
     # Test points that are close to a grid point
-    @test interpolate(grid, data, [1.9, 2.1]) == 1.0  # closest to [1.0, 2.0]
-    @test interpolate(grid, data, [3.6, 3.9]) == 5.0  # data[2, 2]
-    @test interpolate(grid, data, [2.5, 2.0]) == 2.0  # closest to [3.0, 2.0]
+    @test interpolate(grid, data, [1.9, 2.1]) == 1.0
+    @test interpolate(grid, data, [3.6, 3.9]) == 5.0
+    @test interpolate(grid, data, [2.5, 2.0]) == 2.0
 
-    # Test points outside the grid (should pick nearest edge)
-    @test interpolate(grid, data, [0.0, 0.0]) == 1.0   # closest to [1.0, 2.0]
-    @test interpolate(grid, data, [10.0, 10.0]) == 6.0 # closest to [5.0, 4.0]
+    # Test points outside the grid
+    @test interpolate(grid, data, [0.0, 0.0]) == 1.0
+    @test interpolate(grid, data, [10.0, 10.0]) == 6.0
 
-    # Check that the grid has 6 total points (3 x-values × 2 y-values)
+    # Grid metadata checks
     @test length(grid) == 6
-
-    # Check that the grid has 2 dimensions
     @test dimensions(grid) == 2
-
-    # Check the size of the grid (3 x-values, 2 y-values)
     @test size(grid) == (3, 2)
 
-    # Check that we can loop over the grid and get all the points
+    # Grid iteration
     points = [x for x in grid]
     @test length(points) == 6
     @test all(p -> typeof(p) == Vector{Float64}, points)
+
+    # AutoDiff test (should not throw error)
+    f(x) = interpolate(grid, data, x)
+    g = ForwardDiff.gradient(f, [2.9, 3.1])
+    @test typeof(g) == Vector{Float64}
 end
 
 println("All tests complete")

@@ -413,5 +413,49 @@ end
 include(joinpath(@__DIR__, "..", "bench", "interpBenchmarks.jl"))
 compareBenchmarks(4, 10, 100, quiet=false)
 
+@testset "NearestGrid" begin
+    using GridInterpolations
+    using ForwardDiff
+
+    # Create a grid with x values [1.0, 3.0, 5.0] and y values [2.0, 4.0]
+    grid = NearestGrid([1.0, 3.0, 5.0], [2.0, 4.0])
+
+    # Create data that goes with the grid
+    data = [1.0 4.0;   # data at x=1.0
+            2.0 5.0;   # data at x=3.0
+            3.0 6.0]   # data at x=5.0
+
+    # Test points that exactly match the grid
+    @test interpolate(grid, data, [1.0, 2.0]) == 1.0
+    @test interpolate(grid, data, [5.0, 4.0]) == 6.0
+
+    # Test points that are close to a grid point
+    @test interpolate(grid, data, [1.9, 2.1]) == 1.0
+    @test interpolate(grid, data, [3.6, 3.9]) == 5.0
+    @test interpolate(grid, data, [2.5, 2.0]) == 2.0
+
+    # Test points outside the grid
+    @test interpolate(grid, data, [0.0, 0.0]) == 1.0
+    @test interpolate(grid, data, [10.0, 10.0]) == 6.0
+
+    # Grid metadata checks
+    @test length(grid) == 6
+    @test dimensions(grid) == 2
+    @test size(grid) == (3, 2)
+
+    # Grid iteration
+    points = [x for x in grid]
+    @test length(points) == 6
+    @test all(p -> typeof(p) == Vector{Float64}, points)
+
+    # AutoDiff test:
+    f(x) = interpolate(grid, data, x)
+    g = ForwardDiff.gradient(f, [2.9, 3.1])
+    @test typeof(g) == Vector{Float64}
+    
+# New: Gradient at grid vertex should be zero
+    g_vertex = ForwardDiff.gradient(f, [3.0, 4.0])
+    @test g_vertex == [0.0, 0.0]
+end
 
 println("All tests complete")

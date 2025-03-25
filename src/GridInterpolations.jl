@@ -4,7 +4,7 @@ using StaticArrays
 using Printf
 using LinearAlgebra
 
-export AbstractGrid, RectangleGrid, SimplexGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
+export AbstractGrid, RectangleGrid, SimplexGrid, NearestGrid, dimensions, length, label, ind2x, ind2x!, interpolate, maskedInterpolate, interpolants, vertices
 
 abstract type AbstractGrid{D} end # D is the dimension
 
@@ -369,4 +369,61 @@ end
 Base.getindex(grid::RectangleGrid, key::CartesianIndex) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[key])
 Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims((grid.cut_counts...,)))[indices...])
 
-end # module
+# Define the NearestGrid type
+mutable struct NearestGrid{D} <: AbstractGrid{D}
+    cutPoints::Vector{Vector{Float64}}  # List of cut points for each dimension
+    cut_counts::Vector{Int}             # Number of cut points per dimension
+    cuts::Vector{Float64}               # Flattened list of all cut points 
+
+    function NearestGrid{D}(cutPoints::Vararg{AbstractVector{<:Real}, D}) where {D}
+        myCutPoints = [Float64[cp...] for cp in cutPoints]
+        cut_counts = Int[length(cp) for cp in myCutPoints]
+        cuts = vcat(myCutPoints...)  # optional for diagnostics or reuse
+
+        for i in 1:D
+            if length(Set(myCutPoints[i])) != length(myCutPoints[i])
+                error("Duplicate cut points are not allowed in dimension $i")
+            end
+            if !issorted(myCutPoints[i])
+                error("Cut points must be sorted in dimension $i")
+            end
+        end
+
+        return new{D}(myCutPoints, cut_counts, cuts)
+    end
+end
+
+
+NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
+
+# Core interface methods
+Base.length(grid::NearestGrid) = prod(grid.cut_counts)
+Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
+GridInterpolations.dimensions(grid::NearestGrid) = length(grid.cut_counts)
+label(grid::NearestGrid) = "nearest neighbor interpolation grid"
+
+# Nearest neighbor index finder
+function findnearest(vec::Vector{Float64}, val::Real)
+    _, idx = findmin(abs.(vec .- val))
+    return idx
+end
+
+# Required interpolants function
+function GridInterpolations.interpolants(grid::NearestGrid, x::AbstractVector)
+    idxs = map((cut, xi) -> findnearest(cut, xi), grid.cutPoints, x)
+    return ([CartesianIndex(idxs...)], [1.0])  # one point, weight 1.0
+end
+
+# Iteration over the grid (returns list of grid point values)
+function Base.iterate(grid::NearestGrid, state::Int=1)
+    return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
+end
+
+# Convert linear index to coordinate (for iteration and display)
+function ind2x(grid::NearestGrid, index::Int)
+    inds = CartesianIndices(Tuple(grid.cut_counts))
+    coord = inds[index]
+    return [grid.cutPoints[i][coord[i]] for i in 1:length(grid.cutPoints)]
+end
+
+    end # module

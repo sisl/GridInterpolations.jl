@@ -35,6 +35,7 @@ Create two-dimensional interpolation grids, a data array, and a point of interes
 ```julia
 grid = RectangleGrid([0., 0.5, 1.],[0., 0.5, 1.])  	# rectangular grid
 sGrid = SimplexGrid([0., 0.5, 1.],[0., 0.5, 1.])	# simplex grid
+nGrid = NearestGrid([0., 0.5, 1.], [0., 0.5, 1.])     # nearest-neighbor grid 
 gridData = [8., 1., 6., 3., 5., 7., 4., 9., 2.]   	# vector of value data at each cut
 x = [0.25, 0.75]  									# point at which to perform interpolation
 ```
@@ -49,6 +50,12 @@ Or interpolate on the simplex grid:
 ```julia
 julia> interpolate(sGrid,gridData,x)
 6.0
+```
+
+Or interpolate on the nearest-neighbor grid:
+```julia
+julia> interpolate(nGrid, gridData, x)
+9.0
 ```
 
 Compute interpolants for the grids:
@@ -122,4 +129,4 @@ ForwardDiff.gradient(f, x)
 
 ## Credits
 
-Contributors to this package include Maxim Egorov, Eric Mueller, and Mykel Kochenderfer.
+Contributors to this package include Maxim Egorov, Eric Mueller, and Mykel Kochenderfer

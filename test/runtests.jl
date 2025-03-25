@@ -448,7 +448,7 @@ compareBenchmarks(4, 10, 100, quiet=false)
     @test length(points) == 6
     @test all(p -> typeof(p) == Vector{Float64}, points)
 
-    # AutoDiff test (should not throw error)
+    # AutoDiff test:
     f(x) = interpolate(grid, data, x)
     g = ForwardDiff.gradient(f, [2.9, 3.1])
     @test typeof(g) == Vector{Float64}

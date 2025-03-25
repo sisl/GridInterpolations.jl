@@ -452,6 +452,10 @@ compareBenchmarks(4, 10, 100, quiet=false)
     f(x) = interpolate(grid, data, x)
     g = ForwardDiff.gradient(f, [2.9, 3.1])
     @test typeof(g) == Vector{Float64}
+    
+# New: Gradient at grid vertex should be zero
+    g_vertex = ForwardDiff.gradient(f, [3.0, 4.0])
+    @test g_vertex == [0.0, 0.0]
 end
 
 println("All tests complete")

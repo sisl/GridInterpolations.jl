@@ -373,7 +373,7 @@ Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims(
 mutable struct NearestGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}  # List of cut points for each dimension
     cut_counts::Vector{Int}             # Number of cut points per dimension
-    cuts::Vector{Float64}               # Flattened list of all cut points (optional)
+    cuts::Vector{Float64}               # Flattened list of all cut points 
 
     function NearestGrid{D}(cutPoints::Vararg{AbstractVector{<:Real}, D}) where {D}
         myCutPoints = [Float64[cp...] for cp in cutPoints]
@@ -393,7 +393,7 @@ mutable struct NearestGrid{D} <: AbstractGrid{D}
     end
 end
 
-# Convenience constructor
+
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
 
 # Core interface methods
@@ -402,7 +402,7 @@ Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
 GridInterpolations.dimensions(grid::NearestGrid) = length(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
-# Nearest neighbor index finder (efficient and robust)
+# Nearest neighbor index finder
 function findnearest(vec::Vector{Float64}, val::Float64)
     _, idx = findmin(abs.(vec .- val))
     return idx

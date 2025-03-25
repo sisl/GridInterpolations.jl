@@ -432,7 +432,7 @@ compareBenchmarks(4, 10, 100, quiet=false)
 
     # Test points that are close to a grid point
     @test interpolate(grid, data, [1.9, 2.1]) == 1.0  # closest to [1.0, 2.0]
-    @test interpolate(grid, data, [3.6, 3.9]) == 6.0  # closest to [5.0, 4.0]
+    @test interpolate(grid, data, [3.6, 3.9]) == 5.0  # data[2, 2]
     @test interpolate(grid, data, [2.5, 2.0]) == 2.0  # closest to [3.0, 2.0]
 
     # Test points outside the grid (should pick nearest edge)

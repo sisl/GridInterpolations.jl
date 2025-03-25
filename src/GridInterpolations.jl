@@ -373,12 +373,12 @@ Base.getindex(grid::RectangleGrid, indices...) = ind2x(grid, LinearIndices(Dims(
 mutable struct NearestGrid{D} <: AbstractGrid{D}
     cutPoints::Vector{Vector{Float64}}  # List of cut points for each dimension
     cut_counts::Vector{Int}             # Number of cut points per dimension
-    cuts::Vector{Float64}               # Flattened list of all cut points
+    cuts::Vector{Float64}               # Flattened list of all cut points (optional)
 
     function NearestGrid{D}(cutPoints::Vararg{AbstractVector{<:Real}, D}) where {D}
         myCutPoints = [Float64[cp...] for cp in cutPoints]
         cut_counts = Int[length(cp) for cp in myCutPoints]
-        cuts = vcat(myCutPoints...)  # Flattened list (not used in interpolate)
+        cuts = vcat(myCutPoints...)  # optional for diagnostics or reuse
 
         for i in 1:D
             if length(Set(myCutPoints[i])) != length(myCutPoints[i])
@@ -396,30 +396,30 @@ end
 # Convenience constructor
 NearestGrid(cutPoints...) = NearestGrid{length(cutPoints)}(cutPoints...)
 
-# Core interface functions
+# Core interface methods
 Base.length(grid::NearestGrid) = prod(grid.cut_counts)
 Base.size(grid::NearestGrid) = Tuple(grid.cut_counts)
 GridInterpolations.dimensions(grid::NearestGrid) = length(grid.cut_counts)
 label(grid::NearestGrid) = "nearest neighbor interpolation grid"
 
-# Interpolation function
-function interpolate(grid::NearestGrid, data::AbstractArray, x::AbstractVector)
-    idxs = map((cut, xi) -> findnearest(cut, xi), grid.cutPoints, x)
-    return data[CartesianIndex(idxs...)]
-end
-
-# Nearest neighbor index finder (efficient and accurate)
+# Nearest neighbor index finder (efficient and robust)
 function findnearest(vec::Vector{Float64}, val::Float64)
     _, idx = findmin(abs.(vec .- val))
     return idx
 end
 
-# Iteration over the grid
+# Required interpolants function
+function GridInterpolations.interpolants(grid::NearestGrid, x::AbstractVector)
+    idxs = map((cut, xi) -> findnearest(cut, xi), grid.cutPoints, x)
+    return ([CartesianIndex(idxs...)], [1.0])  # one point, weight 1.0
+end
+
+# Iteration over the grid (returns list of grid point values)
 function Base.iterate(grid::NearestGrid, state::Int=1)
     return state <= length(grid) ? (ind2x(grid, state), state + 1) : nothing
 end
 
-# Convert a flat index to a grid coordinate
+# Convert linear index to coordinate (for iteration and display)
 function ind2x(grid::NearestGrid, index::Int)
     inds = CartesianIndices(Tuple(grid.cut_counts))
     coord = inds[index]
